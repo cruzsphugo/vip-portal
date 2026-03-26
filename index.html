@@ -1,398 +1,31 @@
+
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
-<title>VIP Manuseios - OS 923</title>
+<meta name="theme-color" content="#080808">
+<title>VIP Manuseios — OS #923</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-
-<script>
-// ALL FUNCTIONS DEFINED IN HEAD — always available when onclick fires
-var API_URL = 'https://script.google.com/macros/s/AKfycbzIdUAm7MH0uiB8IzoBUBiHz0GlwF36mWPDmyz7tFYdtIGLJdx8rsTiMQlDjxF2PQnpTw/exec';
-var PIN = '1234';
-
-var PHASES = [
-  {id:'e1', items:[
-    {id:'a', text:'Material recebido com NF ou declaracao de remessa', qty:''},
-    {id:'b', text:'Contagem: rolos de selos', qty:'95.500 selos - 20 conjuntos'},
-    {id:'c', text:'Contagem: cartelas de selos', qty:'4.775 cartelas'},
-    {id:'d', text:'Planilha de destinatarios recebida e validada', qty:'4.775 registros'},
-    {id:'e', text:'Estacoes de trabalho organizadas', qty:''}
-  ]},
-  {id:'e2', items:[
-    {id:'f', text:'Abertura dos envelopes', qty:'4.775 envelopes'},
-    {id:'g', text:'Recorte dos conjuntos de adesivos', qty:'20 conjuntos - 95.500 selos'},
-    {id:'h', text:'Insercao de 1 carta por envelope', qty:'4.775 cartas'},
-    {id:'i', text:'Insercao de 1 cartela de selos', qty:'4.775 cartelas'},
-    {id:'j', text:'Insercao de 20 selos soltos', qty:'95.500 selos'},
-    {id:'k', text:'Fechamento dos envelopes com cola', qty:'4.775 envelopes'},
-    {id:'l', text:'Etiquetas de destinatario coladas', qty:'4.775 etiquetas'},
-    {id:'m', text:'Etiquetas de remetente coladas', qty:'4.775 etiquetas'},
-    {id:'n', text:'Chancelas Mala Direta inseridas', qty:'4.775 chancelas'}
-  ]},
-  {id:'e3', items:[
-    {id:'o', text:'Conferencia final de amostragem', qty:''},
-    {id:'p', text:'Envelopes contados e organizados', qty:'4.775 unidades'},
-    {id:'q', text:'Despacho realizado nos Correios', qty:'Mala Direta - 4.775 envios'},
-    {id:'r', text:'Comprovante de postagem enviado ao cliente', qty:''}
-  ]}
-];
-
-var STAGES = [
-  {name:'Recebimento, separacao, conferencia e organizacao de material', desc:'Material recebido e conferido na VIP. Selos, cartelas, planilha e envelopes organizados para inicio da operacao.'},
-  {name:'Manuseio do material', desc:'Montagem dos envelopes: carta, cartela, selos, etiquetagem e chancela Mala Direta.'},
-  {name:'Conferencia final, despacho e encerramento', desc:'Conferencia final, organizacao e despacho nos Correios na modalidade Mala Direta.'}
-];
-
-var S = {checks:{}, msgs:[], photos:[]};
-
-function lsLoad(){
-  try{S.checks=JSON.parse(localStorage.getItem('v923c')||'{}');}catch(e){S.checks={};}
-  try{S.msgs=JSON.parse(localStorage.getItem('v923m')||'[]');}catch(e){S.msgs=[];}
-  try{S.photos=JSON.parse(localStorage.getItem('v923p')||'[]');}catch(e){S.photos=[];}
-}
-function lsSave(){
-  try{
-    localStorage.setItem('v923c', JSON.stringify(S.checks));
-    localStorage.setItem('v923m', JSON.stringify(S.msgs));
-    localStorage.setItem('v923p', JSON.stringify(S.photos));
-  }catch(e){}
-}
-
-function pad(n){ return n < 10 ? '0'+n : ''+n; }
-function nowTs(){
-  var d = new Date();
-  return pad(d.getDate())+'/'+pad(d.getMonth()+1)+' '+pad(d.getHours())+':'+pad(d.getMinutes());
-}
-function esc(t){
-  return String(t)
-    .replace(/&/g,'&amp;')
-    .replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;')
-    .replace(/\n/g,'<br>');
-}
-function uid(){ return Math.random().toString(36).slice(2)+Date.now().toString(36); }
-
-function fixUrl(u){
-  var m = u.match(/\/file\/d\/([^\/]+)\//);
-  return m ? 'https://drive.google.com/uc?export=view&id='+m[1] : u;
-}
-
-function toast(msg){
-  var t = document.getElementById('toast');
-  if(!t) return;
-  t.textContent = msg;
-  t.className = 'toast show';
-  clearTimeout(t._t);
-  t._t = setTimeout(function(){ t.className = 'toast'; }, 2500);
-}
-
-function apiCall(action, body, cb){
-  if(!API_URL){ if(cb) cb(null,{ok:true}); return; }
-  var done = false;
-  var timer = setTimeout(function(){
-    if(done) return; done = true; if(cb) cb('timeout', null);
-  }, 8000);
-  fetch(API_URL+'?action='+action, {
-    method:'POST',
-    body: JSON.stringify(body||{}),
-    headers:{'Content-Type':'application/json'}
-  })
-  .then(function(r){ return r.json(); })
-  .then(function(d){
-    if(done) return; done=true; clearTimeout(timer); if(cb) cb(null,d);
-  })
-  .catch(function(e){
-    if(done) return; done=true; clearTimeout(timer); if(cb) cb(e,null);
-  });
-}
-
-function syncFromApi(){
-  apiCall('load', {}, function(err, res){
-    if(!err && res && res.ok){
-      S.checks = res.checks || S.checks;
-      S.msgs   = res.msgs   || S.msgs;
-      S.photos = res.photos || S.photos;
-      lsSave();
-      if(document.readyState !== 'loading') renderClient();
-    }
-  });
-}
-
-// --- Progress ---
-function calcProg(){
-  var tot=0, done=0;
-  PHASES.forEach(function(ph){
-    ph.items.forEach(function(it){ tot++; if(S.checks[ph.id+it.id]) done++; });
-  });
-  return {tot:tot, done:done, pct: tot>0 ? Math.round(done/tot*100) : 0};
-}
-function phaseProg(pid){
-  var ph = PHASES.find(function(p){ return p.id===pid; });
-  if(!ph) return {done:0,tot:0};
-  var d=0; ph.items.forEach(function(it){ if(S.checks[pid+it.id]) d++; });
-  return {done:d, tot:ph.items.length};
-}
-function stageStatuses(){
-  return PHASES.map(function(ph){
-    var p = phaseProg(ph.id);
-    if(p.done===p.tot && p.tot>0) return 'done';
-    if(p.done>0) return 'active';
-    return 'wait';
-  });
-}
-
-// --- View switching ---
-function showView(v){
-  document.getElementById('view-client').style.display = (v==='client') ? 'block' : 'none';
-  document.getElementById('view-pin').style.display    = (v==='pin')    ? 'flex'  : 'none';
-  document.getElementById('view-carol').style.display  = (v==='carol')  ? 'block' : 'none';
-  if(v==='carol') window.scrollTo(0,0);
-}
-
-// THESE ARE CALLED BY onclick IN HTML — must be in global scope
-function openPin(){
-  showView('pin');
-  var inp = document.getElementById('pin-inp');
-  if(inp){ inp.value=''; setTimeout(function(){ inp.focus(); },150); }
-  var err = document.getElementById('pin-err');
-  if(err) err.style.display='none';
-}
-function tryPin(){
-  var inp = document.getElementById('pin-inp');
-  var val = inp ? inp.value.trim() : '';
-  if(val === PIN){
-    showView('carol');
-    renderCarol();
-  } else {
-    var err = document.getElementById('pin-err');
-    if(err) err.style.display='block';
-    if(inp){ inp.value=''; inp.focus(); }
-  }
-}
-function exitCarol(){
-  showView('client');
-  renderClient();
-}
-
-// --- Render client ---
-function renderClient(){
-  var p = calcProg();
-  var ss = stageStatuses();
-  var allDone = ss.every(function(s){ return s==='done'; });
-
-  var pb = document.getElementById('prog-bar');
-  var pt = document.getElementById('pct-txt');
-  if(pb) pb.style.width = p.pct+'%';
-  if(pt) pt.textContent = p.pct+'%';
-
-  var st = document.getElementById('s-txt');
-  if(st){ st.textContent = allDone?'Concluido':'Em producao'; st.className='meta-v '+(allDone?'ok':'gold'); }
-
-  var badge = document.getElementById('s-badge');
-  if(badge){
-    if(allDone){
-      badge.style.background='var(--ok-bg)'; badge.style.borderColor='rgba(29,158,117,.3)';
-      badge.innerHTML='<span style="color:var(--ok)">Concluido</span>';
-    } else {
-      badge.style.background=''; badge.style.borderColor='';
-      badge.innerHTML='<div class="live-dot"></div>Em andamento';
-    }
-  }
-
-  var tl = document.getElementById('tl');
-  if(tl){
-    tl.innerHTML = '';
-    STAGES.forEach(function(stage, i){
-      var s = ss[i];
-      var dc = s==='done'?'done': s==='active'?'active':'wait';
-      var bc = s==='done'?'st-done': s==='active'?'st-active':'st-wait';
-      var bt = s==='done'?'Concluido': s==='active'?'Em andamento':'Aguardando';
-      var svg = s==='done' ? '<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>' : '';
-      var nc = s==='wait' ? 'tl-name dim' : 'tl-name';
-      var dc2 = s==='wait' ? ' style="color:var(--wh3)"' : '';
-      var live = s==='active' ? '<span class="live-badge" style="margin-left:.35rem"><div class="live-dot"></div>Agora</span>' : '';
-      tl.innerHTML += '<div class="tl-item">'
-        +'<div class="tl-dot '+dc+'">'+svg+'</div>'
-        +'<div class="tl-head"><div class="'+nc+'">'+(i+1)+'. '+stage.name+live+'</div>'
-        +'<div class="tl-badge '+bc+'">'+bt+'</div></div>'
-        +'<div class="tl-desc"'+dc2+'>'+stage.desc+'</div>'
-        +'</div>';
-    });
-  }
-
-  var dispatched = !!S.checks['e3q'];
-  var dcEl = document.getElementById('dc-txt');
-  if(dcEl){ dcEl.textContent=(dispatched?'4.775':'0')+' / 4.775'; dcEl.className='dispatch-v '+(dispatched?'ok':'gold'); }
-
-  // Photos
-  var pEl = document.getElementById('client-photos');
-  if(pEl){
-    if(!S.photos || !S.photos.length){
-      pEl.innerHTML = ['Recebimento','Manuseio','Conferencia','Despacho'].map(function(l){
-        return '<div class="photo-card slot">'
-          +'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>'
-          +'<span>'+l+'</span></div>';
-      }).join('');
-    } else {
-      pEl.innerHTML = S.photos.map(function(ph){
-        return '<div class="photo-card has-img">'
-          +'<img src="'+fixUrl(ph.url)+'" alt="" loading="lazy">'
-          +(ph.cap ? '<div class="photo-caption">'+esc(ph.cap)+'</div>' : '')
-          +'</div>';
-      }).join('');
-    }
-  }
-
-  // Messages
-  var mEl = document.getElementById('client-msgs');
-  if(mEl){
-    if(!S.msgs || !S.msgs.length){
-      mEl.innerHTML = '<div class="no-msgs">Nenhuma atualizacao ainda.</div>';
-    } else {
-      mEl.innerHTML = S.msgs.map(function(m){
-        return '<div class="msg">'
-          +'<div class="msg-avatar">CV</div>'
-          +'<div class="msg-body">'
-            +'<div class="msg-who">Carol - VIP Manuseios</div>'
-            +'<div class="msg-text">'+esc(m.txt)+'</div>'
-            +'<div class="msg-time">'+m.ts+'</div>'
-          +'</div></div>';
-      }).join('');
-    }
-  }
-}
-
-// --- Render Carol panel ---
-function renderCarol(){
-  var p = calcProg();
-  var cb = document.getElementById('cp-bar'); if(cb) cb.style.width=p.pct+'%';
-  var cd = document.getElementById('cp-done'); if(cd) cd.textContent=p.done;
-  var ct = document.getElementById('cp-total'); if(ct) ct.textContent=p.tot;
-  var cp = document.getElementById('cp-pct'); if(cp) cp.textContent=p.pct+'%';
-
-  PHASES.forEach(function(ph){
-    var num = ph.id.replace('e','');
-    var cont = document.getElementById('cl-e'+num);
-    if(!cont) return;
-    cont.innerHTML = '';
-    ph.items.forEach(function(it){
-      var key = ph.id+it.id;
-      var checked = !!S.checks[key];
-      var div = document.createElement('div');
-      div.className = 'cl-item' + (checked?' checked':'');
-      div.innerHTML = '<div class="cl-checkbox">'
-        +'<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>'
-        +'</div>'
-        +'<div><div class="cl-text">'+it.text+'</div>'
-        +(it.qty?'<div class="cl-qty">'+it.qty+'</div>':'')
-        +'</div>';
-      div.onclick = function(){
-        S.checks[key] = !S.checks[key];
-        lsSave(); renderCarol(); renderClient();
-        apiCall('check', {id:key, checked:S.checks[key]}, null);
-      };
-      cont.appendChild(div);
-    });
-    var pp = phaseProg(ph.id);
-    var pel = document.getElementById('pp-'+ph.id);
-    if(pel) pel.textContent = pp.done+'/'+pp.tot;
-  });
-
-  renderCarolPhotos();
-  renderCarolMsgs();
-}
-
-function renderCarolPhotos(){
-  var el = document.getElementById('carol-photos');
-  if(!el) return;
-  if(!S.photos || !S.photos.length){ el.innerHTML=''; return; }
-  el.innerHTML = S.photos.map(function(ph){
-    return '<div class="c-photo">'
-      +'<img src="'+fixUrl(ph.url)+'" alt="" loading="lazy">'
-      +(ph.cap?'<div class="c-photo-cap">'+esc(ph.cap)+'</div>':'')
-      +'<button class="del-ph" onclick="delPhoto(\''+ph.id+'\')">X</button>'
-      +'</div>';
-  }).join('');
-}
-function delPhoto(id){
-  S.photos = S.photos.filter(function(p){ return p.id!==id; });
-  lsSave(); renderCarolPhotos(); renderClient();
-  apiCall('delpho', {id:id}, null);
-  toast('Foto removida.');
-}
-
-function renderCarolMsgs(){
-  var el = document.getElementById('sent-msgs');
-  if(!el) return;
-  if(!S.msgs || !S.msgs.length){
-    el.innerHTML='<div style="font-size:.78rem;color:var(--wh3)">Nenhuma atualizacao publicada ainda.</div>';
-    return;
-  }
-  el.innerHTML = S.msgs.map(function(m){
-    return '<div class="sent-item">'
-      +'<button class="del-btn" onclick="delMsg(\''+m.id+'\')">apagar</button>'
-      +'<div class="sent-text">'+esc(m.txt)+'</div>'
-      +'<div class="sent-time">'+m.ts+'</div>'
-      +'</div>';
-  }).join('');
-}
-function delMsg(id){
-  S.msgs = S.msgs.filter(function(m){ return m.id!==id; });
-  lsSave(); renderCarolMsgs(); renderClient();
-  apiCall('delmsg', {id:id}, null);
-  toast('Mensagem apagada.');
-}
-
-function addPhoto(){
-  var urlEl = document.getElementById('ph-url');
-  var capEl = document.getElementById('ph-cap');
-  var url = urlEl ? urlEl.value.trim() : '';
-  var cap = capEl ? capEl.value.trim() : '';
-  if(!url){ toast('Informe a URL da foto.'); return; }
-  var pid = uid();
-  S.photos.push({id:pid, url:url, cap:cap});
-  lsSave();
-  if(urlEl) urlEl.value='';
-  if(capEl) capEl.value='';
-  renderCarolPhotos(); renderClient();
-  toast('Foto adicionada!');
-  apiCall('photo', {url:url, caption:cap}, null);
-}
-
-function pubMsg(){
-  var inp = document.getElementById('msg-inp');
-  var txt = inp ? inp.value.trim() : '';
-  if(!txt) return;
-  var mid = uid(), mts = nowTs();
-  S.msgs.push({id:mid, txt:txt, ts:mts});
-  lsSave();
-  if(inp) inp.value='';
-  renderCarolMsgs(); renderClient();
-  toast('Atualizacao publicada!');
-  apiCall('msg', {text:txt}, null);
-}
-</script>
-
 <style>
 :root{--gold:#D4A017;--gold-h:#F5C842;--blk:#080808;--blk2:#0f0f0f;--blk3:#161616;--wh:#FAFAF8;--wh2:#B8B4A8;--wh3:#6A6660;--ok:#1D9E75;--ok-bg:rgba(29,158,117,.1);--pend-bg:rgba(212,160,23,.08);--wait-bg:rgba(255,255,255,.04);--warn:#E07B2A;--warn-bg:rgba(224,123,42,.09);--red:#E05252}
 *{box-sizing:border-box;margin:0;padding:0}
 html{-webkit-text-size-adjust:100%}
 body{font-family:"DM Sans","Helvetica Neue",Arial,sans-serif;background:var(--blk);color:var(--wh);min-height:100vh;width:100%;max-width:540px;margin:0 auto;-webkit-font-smoothing:antialiased}
 a{color:inherit;text-decoration:none}
-button,a{-webkit-tap-highlight-color:transparent}
+button{font-family:inherit;cursor:pointer;border:none;background:none;-webkit-tap-highlight-color:transparent}
 img{max-width:100%;display:block}
-input,textarea{font-size:16px!important;font-family:inherit}
-#view-pin,#view-carol{display:none}
+input[type="text"],input[type="password"],input[type="url"],input[type="email"],textarea{font-size:16px!important;font-family:inherit}
 .toast{position:fixed;bottom:1.2rem;left:50%;transform:translateX(-50%);background:var(--blk2);border:1px solid rgba(212,160,23,.3);padding:.6rem 1.2rem;font-size:.85rem;color:var(--wh2);z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;max-width:90vw;text-align:center}
 .toast.show{opacity:1}
 .hdr{padding:1rem 1.1rem;background:var(--blk2);border-bottom:1px solid rgba(212,160,23,.12);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
 .hdr-logo{font-family:"Syne",sans-serif;font-size:1rem;font-weight:800;color:var(--gold);letter-spacing:.1em}
 .hdr-right{display:flex;align-items:center;gap:.6rem}
-.hdr-badge{font-size:.68rem;padding:.25rem .65rem;background:var(--ok-bg);color:var(--ok);border:1px solid rgba(29,158,117,.2)}
-.hdr-gear{font-size:1.1rem;width:44px;height:44px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(212,160,23,.3);color:var(--gold);cursor:pointer;background:transparent}
+.hdr-badge{font-size:.68rem;font-weight:500;padding:.25rem .65rem;background:var(--ok-bg);color:var(--ok);border:1px solid rgba(29,158,117,.2)}
+.hdr-gear{font-size:.9rem;padding:.4rem .65rem;border:1px solid rgba(212,160,23,.2);color:rgba(212,160,23,.5);min-height:40px;min-width:40px;display:flex;align-items:center;justify-content:center}
 .hero-card{margin:.9rem .9rem 0;background:var(--blk2);border:1px solid rgba(212,160,23,.15);padding:1.2rem;position:relative;overflow:hidden}
 .hero-card::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(to right,var(--gold),rgba(212,160,23,.15))}
 .project-label{font-size:.68rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--wh3);margin-bottom:.3rem}
@@ -410,7 +43,7 @@ input,textarea{font-size:16px!important;font-family:inherit}
 .meta-v.ok{color:var(--ok)}
 .prazo-note{margin-top:.65rem;font-size:.68rem;color:var(--wh3);line-height:1.5}
 .prazo-note strong{color:var(--wh2)}
-.live-badge{display:inline-flex;align-items:center;gap:.3rem;padding:.18rem .5rem;background:rgba(29,158,117,.12);border:1px solid rgba(29,158,117,.25);font-size:.6rem;font-weight:700;color:var(--ok)}
+.live-badge{display:inline-flex;align-items:center;gap:.3rem;padding:.18rem .5rem;background:rgba(29,158,117,.12);border:1px solid rgba(29,158,117,.25);font-size:.6rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--ok)}
 .live-dot{width:5px;height:5px;border-radius:50%;background:var(--ok);animation:pulse 1.5s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 .section{padding:1rem .9rem 0}
@@ -422,18 +55,18 @@ input,textarea{font-size:16px!important;font-family:inherit}
 .tl-item:last-child{border-bottom:none;margin-bottom:0}
 .tl-dot{position:absolute;left:-1.4rem;top:.2rem;width:13px;height:13px;border-radius:50%;display:flex;align-items:center;justify-content:center;z-index:1}
 .tl-dot.done{background:var(--ok)}
-.tl-dot.active{background:var(--gold);animation:pd 2s infinite}
-@keyframes pd{0%,100%{box-shadow:0 0 0 3px rgba(212,160,23,.2)}50%{box-shadow:0 0 0 5px rgba(212,160,23,.07)}}
+.tl-dot.active{background:var(--gold);animation:pulsedot 2s infinite}
+@keyframes pulsedot{0%,100%{box-shadow:0 0 0 3px rgba(212,160,23,.2)}50%{box-shadow:0 0 0 5px rgba(212,160,23,.07)}}
 .tl-dot.wait{background:var(--blk3);border:1px solid #2a2a2a}
 .tl-dot svg{width:7px;height:7px}
 .tl-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:.2rem;gap:.4rem}
 .tl-name{font-family:"Syne",sans-serif;font-size:.85rem;font-weight:700;color:var(--wh);line-height:1.3}
 .tl-name.dim{color:var(--wh3)}
-.tl-badge{font-size:.6rem;font-weight:700;padding:.13rem .4rem;white-space:nowrap;flex-shrink:0}
+.tl-badge{font-size:.6rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:.13rem .4rem;white-space:nowrap;flex-shrink:0}
 .st-done{background:var(--ok-bg);color:var(--ok)}
 .st-active{background:var(--pend-bg);color:var(--gold)}
 .st-wait{background:var(--wait-bg);color:var(--wh3)}
-.tl-desc{font-size:.8rem;color:var(--wh2);line-height:1.55}
+.tl-desc{font-size:.8rem;font-weight:300;color:var(--wh2);line-height:1.55}
 .photos{display:grid;grid-template-columns:1fr 1fr;gap:.45rem;margin-top:.7rem}
 .photo-card{background:var(--blk3);aspect-ratio:4/3;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:.7rem;color:var(--wh3);gap:.35rem;border:1px solid rgba(255,255,255,.05);overflow:hidden;position:relative}
 .photo-card.has-img img{width:100%;height:100%;object-fit:cover}
@@ -454,30 +87,30 @@ input,textarea{font-size:16px!important;font-family:inherit}
 .msg{background:var(--blk2);border:1px solid rgba(255,255,255,.05);padding:.8rem .9rem;margin-bottom:.4rem;display:flex;gap:.65rem;align-items:flex-start}
 .msg-avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#9A7010,var(--gold));display:flex;align-items:center;justify-content:center;font-family:"Syne",sans-serif;font-size:.6rem;font-weight:800;color:#050505;flex-shrink:0}
 .msg-who{font-size:.72rem;font-weight:500;color:var(--wh);margin-bottom:.15rem}
-.msg-text{font-size:.82rem;color:var(--wh2);line-height:1.5}
+.msg-text{font-size:.82rem;font-weight:300;color:var(--wh2);line-height:1.5}
 .msg-time{font-size:.65rem;color:var(--wh3);margin-top:.15rem}
 .no-msgs{font-size:.82rem;color:var(--wh3);font-style:italic;padding:.4rem 0}
 .cta-area{padding:1rem .9rem}
-.cta-btn{width:100%;padding:.95rem;font-family:"Syne",sans-serif;font-size:.88rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;background:var(--gold);color:#050505;border:none;display:flex;align-items:center;justify-content:center;gap:.5rem;clip-path:polygon(0 0,calc(100% - 7px) 0,100% 7px,100% 100%,7px 100%,0 calc(100% - 7px));min-height:52px}
+.cta-btn{width:100%;padding:.95rem;font-family:"Syne",sans-serif;font-size:.88rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;background:var(--gold);color:#050505;border:none;display:flex;align-items:center;justify-content:center;gap:.5rem;clip-path:polygon(0 0,calc(100% - 7px) 0,100% 7px,100% 100%,7px 100%,0 calc(100% - 7px));transition:background .2s;min-height:52px}
 .cta-btn:active{background:var(--gold-h)}
 .cta-sub{text-align:center;font-size:.75rem;color:var(--wh3);margin-top:.55rem}
 .portal-footer{margin:1rem .9rem 2.5rem;padding:.85rem;border-top:1px solid rgba(255,255,255,.05);display:flex;align-items:center;justify-content:space-between}
 .pf-brand{font-family:"Syne",sans-serif;font-size:.7rem;font-weight:700;color:rgba(212,160,23,.3)}
 .pf-link{font-size:.65rem;color:var(--wh3)}
-#view-pin{position:fixed;inset:0;background:var(--blk);flex-direction:column;align-items:center;justify-content:center;gap:1.1rem;padding:2rem 1.5rem;z-index:200}
+#view-pin{position:fixed;inset:0;background:var(--blk);display:none;flex-direction:column;align-items:center;justify-content:center;gap:1.1rem;padding:2rem 1.5rem;z-index:200}
 .pin-title{font-family:"Syne",sans-serif;font-size:1.1rem;font-weight:800;color:var(--gold);text-align:center}
 .pin-sub{font-size:.85rem;color:var(--wh3);text-align:center}
-.pin-input{background:var(--blk2);border:2px solid rgba(212,160,23,.3);color:var(--wh);font-family:"Syne",sans-serif;font-weight:800;letter-spacing:.4em;text-align:center;padding:.9rem 1.2rem;width:200px;outline:none;font-size:2rem!important}
+.pin-input{background:var(--blk2);border:2px solid rgba(212,160,23,.3);color:var(--wh);font-family:"Syne",sans-serif;font-weight:800;letter-spacing:.5em;text-align:center;padding:.9rem 1.2rem;width:200px;outline:none}
 .pin-input:focus{border-color:var(--gold)}
 .pin-error{font-size:.78rem;color:var(--red);display:none;text-align:center}
-.pin-btn{font-family:"Syne",sans-serif;font-size:.85rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:var(--gold);color:#050505;border:none;padding:.85rem 2.5rem;min-height:50px;min-width:170px;cursor:pointer}
+.pin-btn{font-family:"Syne",sans-serif;font-size:.85rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:var(--gold);color:#050505;padding:.85rem 2.5rem;clip-path:polygon(0 0,calc(100% - 6px) 0,100% 6px,100% 100%,6px 100%,0 calc(100% - 6px));min-height:50px;min-width:170px}
 .pin-btn:active{background:var(--gold-h)}
-.pin-cancel{font-size:.8rem;color:var(--wh3);padding:.5rem;background:none;border:none;cursor:pointer}
-#view-carol{background:var(--blk);min-height:100vh}
+.pin-cancel{font-size:.8rem;color:var(--wh3);padding:.5rem}
+#view-carol{background:var(--blk);min-height:100vh;display:none}
 .carol-hdr{padding:1rem 1.1rem;background:#0c0a00;border-bottom:2px solid var(--gold);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
 .carol-hdr-title{font-family:"Syne",sans-serif;font-size:.9rem;font-weight:800;color:var(--gold)}
 .carol-hdr-sub{font-size:.65rem;color:var(--wh3);margin-top:.1rem}
-.carol-close{font-size:.72rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;padding:.5rem .85rem;background:rgba(212,160,23,.08);border:1px solid rgba(212,160,23,.25);color:var(--gold);min-height:42px;cursor:pointer}
+.carol-close{font-size:.72rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;padding:.5rem .85rem;background:rgba(212,160,23,.08);border:1px solid rgba(212,160,23,.25);color:var(--gold);min-height:42px}
 .carol-prog{margin:1rem .9rem;background:var(--blk2);border:1px solid rgba(212,160,23,.18);padding:1rem}
 .cp-title{font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--wh3);margin-bottom:.4rem}
 .cp-bar-wrap{background:var(--blk3);height:8px;margin-bottom:.55rem}
@@ -489,11 +122,11 @@ input,textarea{font-size:16px!important;font-family:inherit}
 .cl-section{padding:.5rem .9rem 0}
 .cl-phase{margin-bottom:1.1rem}
 .cl-phase-title{font-family:"Syne",sans-serif;font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);margin-bottom:.5rem;padding-bottom:.4rem;border-bottom:1px solid rgba(212,160,23,.14);display:flex;align-items:center;justify-content:space-between}
-.cl-phase-pct{font-size:.65rem;color:var(--wh3)}
-.cl-item{display:flex;align-items:flex-start;gap:.65rem;padding:.7rem .75rem;background:var(--blk2);border:1px solid rgba(255,255,255,.05);margin-bottom:.3rem;cursor:pointer;min-height:52px}
+.cl-phase-pct{font-size:.65rem;font-weight:600;color:var(--wh3)}
+.cl-item{display:flex;align-items:flex-start;gap:.65rem;padding:.7rem .75rem;background:var(--blk2);border:1px solid rgba(255,255,255,.05);margin-bottom:.3rem;cursor:pointer;min-height:52px;transition:background .15s}
 .cl-item:active{background:var(--blk3)}
 .cl-item.checked{background:#091510;border-color:rgba(29,158,117,.18)}
-.cl-checkbox{width:20px;height:20px;border:1.5px solid var(--wh3);flex-shrink:0;display:flex;align-items:center;justify-content:center;margin-top:.1rem}
+.cl-checkbox{width:20px;height:20px;border:1.5px solid var(--wh3);flex-shrink:0;display:flex;align-items:center;justify-content:center;margin-top:.1rem;transition:all .15s}
 .cl-item.checked .cl-checkbox{background:var(--ok);border-color:var(--ok)}
 .cl-checkbox svg{display:none;width:10px;height:10px}
 .cl-item.checked .cl-checkbox svg{display:block}
@@ -507,40 +140,36 @@ input,textarea{font-size:16px!important;font-family:inherit}
 .big-input{width:100%;background:transparent;border:none;color:var(--wh);line-height:1.55;resize:none;outline:none;min-height:70px}
 .line-input{width:100%;background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,.08);color:var(--wh);padding:.35rem 0;outline:none;margin-bottom:.3rem}
 .line-input::placeholder,.big-input::placeholder{color:var(--wh3)}
-.act-btn{margin-top:.4rem;width:100%;padding:.78rem;font-family:"Syne",sans-serif;font-size:.8rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;background:var(--gold);color:#050505;border:none;min-height:48px;cursor:pointer}
+.act-btn{margin-top:.4rem;width:100%;padding:.78rem;font-family:"Syne",sans-serif;font-size:.8rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;background:var(--gold);color:#050505;clip-path:polygon(0 0,calc(100% - 6px) 0,100% 6px,100% 100%,6px 100%,0 calc(100% - 6px));transition:background .2s;min-height:48px}
 .act-btn:active{background:var(--gold-h)}
 .sent-list{margin-top:.65rem;display:flex;flex-direction:column;gap:.3rem}
 .sent-item{background:var(--blk3);border:1px solid rgba(212,160,23,.08);padding:.6rem .75rem}
 .sent-text{font-size:.78rem;color:var(--wh2);line-height:1.4;margin-bottom:.18rem}
 .sent-time{font-size:.62rem;color:var(--wh3)}
-.del-btn{font-size:.6rem;color:var(--red);float:right;margin-left:.4rem;padding:0;background:none;border:none;cursor:pointer}
+.del-btn{font-size:.6rem;color:var(--red);float:right;margin-left:.4rem;padding:0;cursor:pointer}
 .carol-photos-grid{margin-top:.55rem;display:grid;grid-template-columns:1fr 1fr;gap:.4rem}
-.c-photo{position:relative;aspect-ratio:4/3;background:var(--blk3);overflow:hidden}
+.c-photo{position:relative;aspect-ratio:4/3;background:var(--blk3);overflow:hidden;border:1px solid rgba(255,255,255,.05)}
 .c-photo img{width:100%;height:100%;object-fit:cover}
-.c-photo .del-ph{position:absolute;top:.25rem;right:.25rem;background:rgba(0,0,0,.75);color:var(--red);font-size:.65rem;padding:.15rem .4rem;border:none;cursor:pointer}
+.c-photo .del-ph{position:absolute;top:.25rem;right:.25rem;background:rgba(0,0,0,.75);color:var(--red);font-size:.65rem;padding:.15rem .4rem}
 .c-photo-cap{position:absolute;bottom:0;left:0;right:0;padding:.25rem .4rem;background:rgba(0,0,0,.75);font-size:.6rem;color:var(--wh2)}
 .photo-tip{margin-top:.6rem;font-size:.68rem;color:var(--wh3);line-height:1.6}
 .photo-tip strong{color:var(--wh2)}
 </style>
 </head>
 <body>
-
 <div class="toast" id="toast"></div>
-
-<!-- CLIENT VIEW -->
 <div id="view-client">
   <div class="hdr">
     <div class="hdr-logo">VIP MANUSEIOS</div>
     <div class="hdr-right">
       <div class="hdr-badge">Portal do Cliente</div>
-      <button class="hdr-gear" onclick="openPin()">&#9881;</button>
+      <a href="#pin-screen" class="hdr-gear" id="btn-gear" onclick="openPin();return false;" style="cursor:pointer;text-decoration:none;">&#9881;</a>
     </div>
   </div>
-
   <div class="hero-card">
     <div class="project-label">Ordem de Servico #923</div>
     <div class="project-name">Acao Encantamento <span class="live-badge" id="s-badge"><div class="live-dot"></div>Em andamento</span></div>
-    <div class="project-client">Camila Santos - Plurix - camila@plurix.com</div>
+    <div class="project-client">Camila Santos &middot; Plurix &middot; <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="d9bab8b4b0b5b899a9b5acabb0a1f7bab6b4">[email&#160;protected]</a></div>
     <div>
       <div class="prog-label"><span>Progresso geral</span><span id="pct-txt">0%</span></div>
       <div class="prog-track"><div class="prog-fill" id="prog-bar" style="width:0%"></div></div>
@@ -553,31 +182,26 @@ input,textarea{font-size:16px!important;font-family:inherit}
     </div>
     <div class="prazo-note">*Prazo apos recebimento de <strong>todo o material</strong> do cliente.</div>
   </div>
-
   <div class="section">
     <div class="section-title">Etapas da operacao</div>
     <div class="timeline" id="tl"></div>
   </div>
-
   <div class="dispatch-card">
-    <div class="dispatch-label">Despacho - Correios Mala Direta</div>
+    <div class="dispatch-label">Despacho &middot; Correios Mala Direta</div>
     <div class="dispatch-row"><span class="dispatch-k">Envelopes despachados</span><span class="dispatch-v gold" id="dc-txt">0 / 4.775</span></div>
     <div class="dispatch-row"><span class="dispatch-k">Modalidade</span><span class="dispatch-v">Mala Direta</span></div>
     <div class="dispatch-row"><span class="dispatch-k">Prazo de entrega</span><span class="dispatch-v">10-15 dias uteis apos despacho</span></div>
     <div class="dispatch-row"><span class="dispatch-k">Rastreamento</span><span class="dispatch-v" style="color:var(--wh3)">Nao disponivel nesta modalidade</span></div>
-    <div class="dispatch-note">Envios por Mala Direta nao possuem rastreio individual. O prazo varia de 10 a 15 dias uteis apos o despacho.</div>
+    <div class="dispatch-note">Envios por Mala Direta nao possuem rastreio individual. O prazo varia de 10 a 15 dias uteis apos o despacho nos Correios.</div>
   </div>
-
   <div class="section">
     <div class="section-title">Registros fotograficos</div>
     <div class="photos" id="client-photos"></div>
   </div>
-
   <div class="messages">
     <div class="section-title" style="padding:0 0 .7rem">Atualizacoes da Carol</div>
     <div id="client-msgs"></div>
   </div>
-
   <div class="cta-area">
     <a href="https://wa.me/5511976426556" class="cta-btn">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
@@ -585,33 +209,27 @@ input,textarea{font-size:16px!important;font-family:inherit}
     </a>
     <div class="cta-sub">Duvidas ou alteracoes? A Carol responde em minutos.</div>
   </div>
-
   <div class="portal-footer">
     <div class="pf-brand">VIP MANUSEIOS</div>
     <div class="pf-link">vipmanuseios.com.br</div>
   </div>
 </div>
-
-<!-- PIN VIEW -->
 <div id="view-pin">
-  <div class="pin-title">Painel da Carol</div>
+  <div class="pin-title">&#9881; Painel da Carol</div>
   <div class="pin-sub">Digite o codigo de acesso</div>
-  <input class="pin-input" id="pin-inp" type="password" inputmode="numeric" maxlength="6" placeholder="..." autocomplete="off" onkeydown="if(event.key==='Enter')tryPin()">
+  <input class="pin-input" id="pin-inp" type="password" inputmode="numeric" maxlength="6" placeholder="..." autocomplete="off">
   <div class="pin-error" id="pin-err">Codigo incorreto. Tente novamente.</div>
-  <button class="pin-btn" onclick="tryPin()">Entrar</button>
-  <button class="pin-cancel" onclick="showView('client')">Voltar</button>
+  <a href="#" class="pin-btn" id="btn-enter" onclick="tryPin();return false;" style="cursor:pointer;display:flex;align-items:center;justify-content:center;text-decoration:none;">Entrar</a>
+  <a href="#" class="pin-cancel" id="btn-back" onclick="showView('client');return false;" style="cursor:pointer;display:block;text-decoration:none;">&#8592; Voltar</a>
 </div>
-
-<!-- CAROL VIEW -->
 <div id="view-carol">
   <div class="carol-hdr">
     <div>
-      <div class="carol-hdr-title">Painel da Carol</div>
-      <div class="carol-hdr-sub">OS 923 - Plurix - 4.775 envelopes</div>
+      <div class="carol-hdr-title">&#9881; Painel da Carol</div>
+      <div class="carol-hdr-sub">OS #923 &middot; Plurix &middot; 4.775 envelopes</div>
     </div>
-    <button class="carol-close" onclick="exitCarol()">Sair</button>
+    <a href="#" class="carol-close" id="btn-exit" onclick="showView('client');renderClient();return false;" style="cursor:pointer;display:flex;align-items:center;justify-content:center;text-decoration:none;">&#8592; Sair</a>
   </div>
-
   <div class="carol-prog">
     <div class="cp-title">Progresso geral</div>
     <div class="cp-bar-wrap"><div class="cp-bar" id="cp-bar" style="width:0%"></div></div>
@@ -621,7 +239,6 @@ input,textarea{font-size:16px!important;font-family:inherit}
       <div class="cp-stat"><div class="cp-stat-n" id="cp-pct">0%</div><div class="cp-stat-l">completo</div></div>
     </div>
   </div>
-
   <div class="cl-section">
     <div class="cl-phase">
       <div class="cl-phase-title">Etapa 1 - Recebimento <span class="cl-phase-pct" id="pp-e1"></span></div>
@@ -636,36 +253,233 @@ input,textarea{font-size:16px!important;font-family:inherit}
       <div id="cl-e3"></div>
     </div>
   </div>
-
   <div class="carol-sub-sec">
     <div class="carol-sub-title">Adicionar foto</div>
     <div class="inp-wrap">
       <input class="line-input" id="ph-url" type="url" placeholder="URL da foto (Google Drive, etc.)">
       <input class="line-input" id="ph-cap" type="text" placeholder="Legenda (ex: Recebimento 25/03)">
-      <button class="act-btn" onclick="addPhoto()">Adicionar foto</button>
+      <button class="act-btn" id="btn-addphoto" onclick="addPhoto()">Adicionar foto</button>
     </div>
     <div class="carol-photos-grid" id="carol-photos"></div>
-    <div class="photo-tip"><strong>Como adicionar foto:</strong> Google Drive, botao direito, Obter link, Qualquer pessoa com o link, cole a URL acima.</div>
+    <div class="photo-tip">Como adicionar foto: Google Drive, botao direito, Obter link, Qualquer pessoa com o link, cole a URL acima.</div>
   </div>
-
   <div class="carol-sub-sec">
     <div class="carol-sub-title">Publicar atualizacao para o cliente</div>
     <div class="inp-wrap">
       <textarea class="big-input" id="msg-inp" placeholder="Escreva uma atualizacao para o cliente ver no portal..."></textarea>
-      <button class="act-btn" onclick="pubMsg()">Publicar</button>
+      <button class="act-btn" id="btn-pubmsg" onclick="pubMsg()">Publicar</button>
     </div>
     <div class="sent-list" id="sent-msgs"></div>
   </div>
-
   <div style="height:2rem"></div>
 </div>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+var API_URL='https://script.google.com/macros/s/AKfycbzIdUAm7MH0uiB8IzoBUBiHz0GlwF36mWPDmyz7tFYdtIGLJdx8rsTiMQlDjxF2PQnpTw/exec';
+var PIN='1234';
+var PHASES=[
+  {id:'e1',items:[
+    {id:'a',text:'Material recebido com NF ou declaração de remessa'},
+    {id:'b',text:'Contagem: rolos de selos',qty:'95.500 selos · 20 conjuntos'},
+    {id:'c',text:'Contagem: cartelas de selos',qty:'4.775 cartelas'},
+    {id:'d',text:'Planilha de destinatários recebida e validada',qty:'4.775 registros'},
+    {id:'e',text:'Estações de trabalho organizadas'}
+  ]},
+  {id:'e2',items:[
+    {id:'f',text:'Abertura dos envelopes',qty:'4.775 envelopes'},
+    {id:'g',text:'Recorte dos conjuntos de adesivos',qty:'20 conjuntos · 95.500 selos'},
+    {id:'h',text:'Inserção de 1 carta por envelope',qty:'4.775 cartas'},
+    {id:'i',text:'Inserção de 1 cartela de selos',qty:'4.775 cartelas'},
+    {id:'j',text:'Inserção de 20 selos soltos',qty:'95.500 selos'},
+    {id:'k',text:'Fechamento dos envelopes com cola',qty:'4.775 envelopes'},
+    {id:'l',text:'Etiquetas de destinatário coladas',qty:'4.775 etiquetas'},
+    {id:'m',text:'Etiquetas de remetente coladas',qty:'4.775 etiquetas'},
+    {id:'n',text:'Chancelas Mala Direta inseridas',qty:'4.775 chancelas'}
+  ]},
+  {id:'e3',items:[
+    {id:'o',text:'Conferência final de amostragem'},
+    {id:'p',text:'Envelopes contados e organizados',qty:'4.775 unidades'},
+    {id:'q',text:'Despacho realizado nos Correios',qty:'Mala Direta · 4.775 envios'},
+    {id:'r',text:'Comprovante de postagem enviado ao cliente'}
+  ]}
+];
+var STAGES=[
+  {name:'Recebimento, separação, conferência e organização de material',desc:'Material recebido e conferido na VIP. Selos, cartelas, planilha e envelopes organizados para início da operação.'},
+  {name:'Manuseio do material',desc:'Montagem dos envelopes: carta, cartela, selos, etiquetagem e chancela Mala Direta.'},
+  {name:'Conferência final, despacho e encerramento',desc:'Conferência final, organização e despacho nos Correios na modalidade Mala Direta.'}
+];
+var S={checks:{},msgs:[],photos:[]};
+function lsLoad(){
+  try{S.checks=JSON.parse(localStorage.getItem('v923c')||'{}');}catch(e){S.checks={};}
+  try{S.msgs=JSON.parse(localStorage.getItem('v923m')||'[]');}catch(e){S.msgs=[];}
+  try{S.photos=JSON.parse(localStorage.getItem('v923p')||'[]');}catch(e){S.photos=[];}
+}
+function lsSave(){
+  try{
+    localStorage.setItem('v923c',JSON.stringify(S.checks));
+    localStorage.setItem('v923m',JSON.stringify(S.msgs));
+    localStorage.setItem('v923p',JSON.stringify(S.photos));
+  }catch(e){}
+}
+function apiCall(action,body,cb){
+  if(!API_URL){if(cb)cb(null,{ok:true});return;}
+  var done=false;
+  var t=setTimeout(function(){if(done)return;done=true;if(cb)cb('timeout',null);},8000);
+  fetch(API_URL+'?action='+action,{method:'POST',body:JSON.stringify(body||{}),headers:{'Content-Type':'application/json'}})
+  .then(function(r){return r.json();})
+  .then(function(d){if(done)return;done=true;clearTimeout(t);if(cb)cb(null,d);})
+  .catch(function(e){if(done)return;done=true;clearTimeout(t);if(cb)cb(e,null);});
+}
+function syncFromApi(){
+  apiCall('load',{},function(err,res){
+    if(!err&&res&&res.ok){
+      S.checks=res.checks||S.checks;
+      S.msgs=res.msgs||S.msgs;
+      S.photos=res.photos||S.photos;
+      lsSave();renderClient();
+    }
+  });
+}
+function pad(n){return n<10?'0'+n:''+n;}
+function ts(){var d=new Date();return pad(d.getDate())+'/'+pad(d.getMonth()+1)+' as '+pad(d.getHours())+':'+pad(d.getMinutes());}
+function esc(t){return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');}
+function uid(){return Math.random().toString(36).slice(2);}
+function fixUrl(u){var m=u.match(/\/file\/d\/([^/]+)\//);return m?'https://drive.google.com/uc?export=view&id='+m[1]:u;}
+function toast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(function(){t.classList.remove('show');},2500);}
+function prog(){var tot=0,done=0;PHASES.forEach(function(ph){ph.items.forEach(function(it){tot++;if(S.checks[ph.id+it.id])done++;});});return{tot:tot,done:done,pct:tot>0?Math.round(done/tot*100):0};}
+function phaseProg(pid){var ph=PHASES.find(function(p){return p.id===pid;});if(!ph)return{done:0,tot:0};var d=0;ph.items.forEach(function(it){if(S.checks[pid+it.id])d++;});return{done:d,tot:ph.items.length};}
+function statuses(){return PHASES.map(function(ph){var p=phaseProg(ph.id);if(p.done===p.tot&&p.tot>0)return'done';if(p.done>0)return'active';return'wait';});}
+function showView(v){
+  var vc=document.getElementById('view-client');
+  var vp=document.getElementById('view-pin');
+  var vca=document.getElementById('view-carol');
+  vc.style.display=v==='client'?'block':'none';
+  vp.style.display=v==='pin'?'flex':'none';
+  vca.style.display=v==='carol'?'block':'none';
+  if(v==='carol'){window.scrollTo(0,0);}
+}
+function renderClient(){
+  var p=prog(),ss=statuses(),allDone=ss.every(function(s){return s==='done';});
+  document.getElementById('prog-bar').style.width=p.pct+'%';
+  document.getElementById('pct-txt').textContent=p.pct+'%';
+  var st=document.getElementById('s-txt');st.textContent=allDone?'Concluido':'Em producao';st.className='meta-v '+(allDone?'ok':'gold');
+  var badge=document.getElementById('s-badge');
+  if(allDone){badge.style.background='var(--ok-bg)';badge.style.borderColor='rgba(29,158,117,.3)';badge.innerHTML='<span style="color:var(--ok)">Concluido</span>';}
+  else{badge.style.background='';badge.style.borderColor='';badge.innerHTML='<div class="live-dot"></div>Em andamento';}
+  var tl=document.getElementById('tl');tl.innerHTML='';
+  STAGES.forEach(function(stage,i){
+    var s=ss[i],dc=s==='done'?'done':s==='active'?'active':'wait',bc=s==='done'?'st-done':s==='active'?'st-active':'st-wait',bt=s==='done'?'Concluido':s==='active'?'Em andamento':'Aguardando';
+    var svg=s==='done'?'<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>':'';
+    var nc=s==='wait'?'tl-name dim':'tl-name',dd=s==='wait'?'style="color:var(--wh3)"':'';
+    var live=s==='active'?'<span class="live-badge" style="margin-left:.3rem"><div class="live-dot"></div>Agora</span>':'';
+    tl.innerHTML+='<div class="tl-item"><div class="tl-dot '+dc+'">'+svg+'</div><div class="tl-head"><div class="'+nc+'">'+(i+1)+'. '+stage.name+live+'</div><div class="tl-badge '+bc+'">'+bt+'</div></div><div class="tl-desc" '+dd+'>'+stage.desc+'</div></div>';
+  });
+  var dispatched=!!S.checks['e3q'];
+  var dcEl=document.getElementById('dc-txt');dcEl.textContent=(dispatched?'4.775':'0')+' / 4.775';dcEl.className='dispatch-v '+(dispatched?'ok':'gold');
+  var pEl=document.getElementById('client-photos');
+  if(!S.photos||!S.photos.length){
+    pEl.innerHTML=['Recebimento','Manuseio','Conferencia','Despacho'].map(function(l){return'<div class="photo-card slot"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span>'+l+'</span></div>';}).join('');
+  }else{
+    pEl.innerHTML=S.photos.map(function(ph){return'<div class="photo-card has-img"><img src="'+fixUrl(ph.url)+'" alt="" loading="lazy">'+(ph.cap?'<div class="photo-caption">'+esc(ph.cap)+'</div>':'')+'</div>';}).join('');
+  }
+  var mEl=document.getElementById('client-msgs');
+  if(!S.msgs||!S.msgs.length){mEl.innerHTML='<div class="no-msgs">Nenhuma atualizacao ainda.</div>';}
+  else{mEl.innerHTML=S.msgs.map(function(m){return'<div class="msg"><div class="msg-avatar">CV</div><div class="msg-body"><div class="msg-who">Carol - VIP Manuseios</div><div class="msg-text">'+esc(m.txt)+'</div><div class="msg-time">'+m.ts+'</div></div></div>';}).join('');}
+}
+function renderCarol(){
+  var p=prog();
+  document.getElementById('cp-bar').style.width=p.pct+'%';
+  document.getElementById('cp-done').textContent=p.done;
+  document.getElementById('cp-total').textContent=p.tot;
+  document.getElementById('cp-pct').textContent=p.pct+'%';
+  PHASES.forEach(function(ph){
+    var num=ph.id.replace('e',''),cont=document.getElementById('cl-e'+num);
+    if(!cont)return;
+    cont.innerHTML='';
+    ph.items.forEach(function(it){
+      var key=ph.id+it.id,checked=!!S.checks[key];
+      var div=document.createElement('div');
+      div.className='cl-item'+(checked?' checked':'');
+      div.innerHTML='<div class="cl-checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div><div><div class="cl-text">'+it.text+'</div>'+(it.qty?'<div class="cl-qty">'+it.qty+'</div>':'')+'</div>';
+      div.addEventListener('click',function(){
+        S.checks[key]=!S.checks[key];lsSave();renderCarol();renderClient();
+        apiCall('check',{id:key,checked:S.checks[key]},null);
+      });
+      cont.appendChild(div);
+    });
+    var pp=phaseProg(ph.id),el=document.getElementById('pp-'+ph.id);
+    if(el)el.textContent=pp.done+'/'+pp.tot;
+  });
+  var cph=document.getElementById('carol-photos');
+  if(!S.photos||!S.photos.length){cph.innerHTML='';}
+  else{
+    cph.innerHTML=S.photos.map(function(ph){return'<div class="c-photo"><img src="'+fixUrl(ph.url)+'" alt="" loading="lazy">'+(ph.cap?'<div class="c-photo-cap">'+esc(ph.cap)+'</div>':'')+'<button class="del-ph" data-id="'+ph.id+'">X</button></div>';}).join('');
+    cph.querySelectorAll('.del-ph').forEach(function(btn){btn.addEventListener('click',function(){var id=this.getAttribute('data-id');S.photos=S.photos.filter(function(p){return p.id!==id;});lsSave();renderCarol();renderClient();apiCall('delpho',{id:id},null);toast('Foto removida.');});});
+  }
+  var sms=document.getElementById('sent-msgs');
+  if(!S.msgs||!S.msgs.length){sms.innerHTML='<div style="font-size:.75rem;color:var(--wh3)">Nenhuma atualizacao publicada ainda.</div>';}
+  else{
+    sms.innerHTML=S.msgs.map(function(m){return'<div class="sent-item"><button class="del-btn" data-id="'+m.id+'">apagar</button><div class="sent-text">'+esc(m.txt)+'</div><div class="sent-time">'+m.ts+'</div></div>';}).join('');
+    sms.querySelectorAll('.del-btn').forEach(function(btn){btn.addEventListener('click',function(){var id=this.getAttribute('data-id');S.msgs=S.msgs.filter(function(m){return m.id!==id;});lsSave();renderCarol();renderClient();apiCall('delmsg',{id:id},null);toast('Mensagem apagada.');});});
+  }
+}
+// openPin is called by onclick on the gear button
+function openPin(){
+  showView('pin');
+  var inp=document.getElementById('pin-inp');
+  if(inp){inp.value='';}
+  document.getElementById('pin-err').style.display='none';
+  setTimeout(function(){if(inp)inp.focus();},200);
+}
+function tryPin(){
+  var val=document.getElementById('pin-inp').value.trim();
+  if(val===PIN){showView('carol');renderCarol();}
+  else{document.getElementById('pin-err').style.display='block';document.getElementById('pin-inp').value='';document.getElementById('pin-inp').focus();}
+}
 
-<script>
-// INIT — runs after DOM is ready
+document.getElementById('pin-inp').addEventListener('keydown',function(e){if(e.key==='Enter')tryPin();});
+function addPhoto(){
+  var url=document.getElementById('ph-url').value.trim();
+  var cap=document.getElementById('ph-cap').value.trim();
+  if(!url){toast('Informe a URL da foto.');return;}
+  var pid=uid();
+  S.photos.push({id:pid,url:url,cap:cap});lsSave();
+  document.getElementById('ph-url').value='';document.getElementById('ph-cap').value='';
+  renderCarol();renderClient();toast('Foto adicionada!');
+  apiCall('photo',{url:url,caption:cap},null);
+}
+function pubMsg(){
+  var txt=document.getElementById('msg-inp').value.trim();
+  if(!txt)return;
+  var mid=uid(),mts=ts();
+  S.msgs.push({id:mid,txt:txt,ts:mts});lsSave();
+  document.getElementById('msg-inp').value='';
+  renderCarol();renderClient();toast('Atualizacao publicada!');
+  apiCall('msg',{text:txt},null);
+}
+document.getElementById('btn-addphoto').addEventListener('click',function(){
+  var url=document.getElementById('ph-url').value.trim();
+  var cap=document.getElementById('ph-cap').value.trim();
+  if(!url){toast('Informe a URL da foto.');return;}
+  var pid=uid();
+  S.photos.push({id:pid,url:url,cap:cap});lsSave();
+  document.getElementById('ph-url').value='';document.getElementById('ph-cap').value='';
+  renderCarol();renderClient();toast('Foto adicionada!');
+  apiCall('photo',{url:url,caption:cap},null);
+});
+document.getElementById('btn-pubmsg').addEventListener('click',function(){
+  var txt=document.getElementById('msg-inp').value.trim();
+  if(!txt)return;
+  var mid=uid(),mts=ts();
+  S.msgs.push({id:mid,txt:txt,ts:mts});lsSave();
+  document.getElementById('msg-inp').value='';
+  renderCarol();renderClient();toast('Atualizacao publicada!');
+  apiCall('msg',{text:txt},null);
+});
 lsLoad();
-renderClient();
+lsSave();
 syncFromApi();
-setInterval(function(){ syncFromApi(); }, 30000);
+renderClient();
+setInterval(syncFromApi,30000);
 </script>
 </body>
 </html>
