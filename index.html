@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -76,6 +77,8 @@ function esc(t){
 function uid(){ return Math.random().toString(36).slice(2)+Date.now().toString(36); }
 
 function fixUrl(u){
+  if(!u) return '';
+  if(u.indexOf('data:image')===0) return u;
   var m = u.match(/\/file\/d\/([^\/]+)\//);
   return m ? 'https://drive.google.com/uc?export=view&id='+m[1] : u;
 }
@@ -346,20 +349,51 @@ function delMsg(id){
   toast('Mensagem apagada.');
 }
 
-function addPhoto(){
-  var urlEl = document.getElementById('ph-url');
-  var capEl = document.getElementById('ph-cap');
-  var url = urlEl ? urlEl.value.trim() : '';
-  var cap = capEl ? capEl.value.trim() : '';
-  if(!url){ toast('Informe a URL da foto.'); return; }
+function addPhoto(){ /* replaced by camera flow */ }
+
+var _b64 = null;
+
+function openCamera(){
+  var f = document.getElementById('ph-file');
+  f.setAttribute('capture','environment');
+  f.click();
+}
+function openGallery(){
+  var f = document.getElementById('ph-file');
+  f.removeAttribute('capture');
+  f.click();
+}
+function handlePhotoFile(input){
+  if(!input.files||!input.files[0]) return;
+  var file = input.files[0];
+  var reader = new FileReader();
+  reader.onload = function(e){
+    _b64 = e.target.result;
+    var prev = document.getElementById('ph-preview');
+    var img  = document.getElementById('ph-preview-img');
+    var name = document.getElementById('ph-preview-name');
+    var btn  = document.getElementById('ph-send-btn');
+    if(prev) prev.style.display='block';
+    if(img)  img.src = _b64;
+    if(name) name.textContent = file.name;
+    if(btn)  btn.style.display='block';
+  };
+  reader.readAsDataURL(file);
+}
+function uploadPhoto(){
+  if(!_b64){ toast('Selecione uma foto primeiro.'); return; }
+  var cap = (document.getElementById('ph-cap')||{}).value||'';
   var pid = uid();
-  S.photos.push({id:pid, url:url, cap:cap});
+  S.photos.push({id:pid, url:_b64, cap:cap.trim()});
   lsSave();
-  if(urlEl) urlEl.value='';
-  if(capEl) capEl.value='';
+  _b64=null;
+  var els=['ph-preview','ph-send-btn'];
+  els.forEach(function(id){var e=document.getElementById(id);if(e)e.style.display='none';});
+  var c=document.getElementById('ph-cap'); if(c) c.value='';
+  var f=document.getElementById('ph-file'); if(f) f.value='';
   renderCarolPhotos(); renderClient();
-  toast('Foto adicionada!');
-  apiCall('photo', {url:url, caption:cap}, null);
+  toast('Foto publicada!');
+  apiCall('photo',{url:_b64||'',caption:cap},null);
 }
 
 function pubMsg(){
@@ -377,7 +411,7 @@ function pubMsg(){
 </script>
 
 <style>
-:root{--gold:#D4A017;--gold-h:#F5C842;--blk:#080808;--blk2:#0f0f0f;--blk3:#161616;--wh:#FAFAF8;--wh2:#E8E4DC;--wh3:#A8A4A0;--ok:#1D9E75;--ok-bg:rgba(29,158,117,.1);--pend-bg:rgba(212,160,23,.08);--wait-bg:rgba(255,255,255,.04);--warn:#E07B2A;--warn-bg:rgba(224,123,42,.09);--red:#E05252}
+:root{--gold:#D4A017;--gold-h:#F5C842;--blk:#080808;--blk2:#0f0f0f;--blk3:#161616;--wh:#FAFAF8;--wh2:#E0DCD4;--wh3:#A8A4A0;--ok:#1D9E75;--ok-bg:rgba(29,158,117,.1);--pend-bg:rgba(212,160,23,.08);--wait-bg:rgba(255,255,255,.04);--warn:#E07B2A;--warn-bg:rgba(224,123,42,.09);--red:#E05252}
 *{box-sizing:border-box;margin:0;padding:0}
 html{-webkit-text-size-adjust:100%}
 body{font-family:"DM Sans","Helvetica Neue",Arial,sans-serif;background:var(--blk);color:var(--wh);min-height:100vh;width:100%;max-width:540px;margin:0 auto;-webkit-font-smoothing:antialiased}
@@ -397,7 +431,7 @@ input,textarea{font-size:16px!important;font-family:inherit}
 .hero-card::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(to right,var(--gold),rgba(212,160,23,.15))}
 .project-label{font-size:.68rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--wh3);margin-bottom:.3rem}
 .project-name{font-family:"Syne",sans-serif;font-size:1.15rem;font-weight:800;color:var(--wh);margin-bottom:.2rem;display:flex;align-items:center;gap:.45rem;flex-wrap:wrap;line-height:1.3}
-.project-client{font-size:.82rem;color:var(--wh);margin-bottom:1rem}
+.project-client{font-size:.82rem;color:var(--wh2);margin-bottom:1rem}
 .prog-label{display:flex;justify-content:space-between;font-size:.75rem;color:var(--wh3);margin-bottom:.35rem}
 .prog-label span:last-child{color:var(--gold);font-weight:600}
 .prog-track{height:7px;background:var(--blk3);overflow:hidden}
@@ -408,7 +442,7 @@ input,textarea{font-size:16px!important;font-family:inherit}
 .meta-v{font-size:.88rem;font-weight:500;color:var(--wh)}
 .meta-v.gold{color:var(--gold)}
 .meta-v.ok{color:var(--ok)}
-.prazo-note{margin-top:.65rem;font-size:.68rem;color:#C0BCB8;line-height:1.5}
+.prazo-note{margin-top:.65rem;font-size:.68rem;color:var(--wh3);line-height:1.5}
 .prazo-note strong{color:var(--wh2)}
 .live-badge{display:inline-flex;align-items:center;gap:.3rem;padding:.18rem .5rem;background:rgba(29,158,117,.12);border:1px solid rgba(29,158,117,.25);font-size:.6rem;font-weight:700;color:var(--ok)}
 .live-dot{width:5px;height:5px;border-radius:50%;background:var(--ok);animation:pulse 1.5s infinite}
@@ -433,7 +467,7 @@ input,textarea{font-size:16px!important;font-family:inherit}
 .st-done{background:var(--ok-bg);color:var(--ok)}
 .st-active{background:var(--pend-bg);color:var(--gold)}
 .st-wait{background:var(--wait-bg);color:var(--wh3)}
-.tl-desc{font-size:.8rem;color:var(--wh);line-height:1.55}
+.tl-desc{font-size:.8rem;color:var(--wh2);line-height:1.55}
 .photos{display:grid;grid-template-columns:1fr 1fr;gap:.45rem;margin-top:.7rem}
 .photo-card{background:var(--blk3);aspect-ratio:4/3;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:.7rem;color:var(--wh3);gap:.35rem;border:1px solid rgba(255,255,255,.05);overflow:hidden;position:relative}
 .photo-card.has-img img{width:100%;height:100%;object-fit:cover}
@@ -449,12 +483,12 @@ input,textarea{font-size:16px!important;font-family:inherit}
 .dispatch-v{color:var(--wh);font-weight:500}
 .dispatch-v.gold{color:var(--gold)}
 .dispatch-v.ok{color:var(--ok)}
-.dispatch-note{margin-top:.65rem;padding:.55rem .7rem;background:var(--warn-bg);border:1px solid rgba(224,123,42,.2);font-size:.72rem;color:#F0A060;line-height:1.5}
+.dispatch-note{margin-top:.65rem;padding:.55rem .7rem;background:var(--warn-bg);border:1px solid rgba(224,123,42,.2);font-size:.72rem;color:var(--warn);line-height:1.5}
 .messages{margin:1rem .9rem 0}
 .msg{background:var(--blk2);border:1px solid rgba(255,255,255,.05);padding:.8rem .9rem;margin-bottom:.4rem;display:flex;gap:.65rem;align-items:flex-start}
 .msg-avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#9A7010,var(--gold));display:flex;align-items:center;justify-content:center;font-family:"Syne",sans-serif;font-size:.6rem;font-weight:800;color:#050505;flex-shrink:0}
 .msg-who{font-size:.72rem;font-weight:500;color:var(--wh);margin-bottom:.15rem}
-.msg-text{font-size:.82rem;color:var(--wh);line-height:1.5}
+.msg-text{font-size:.82rem;color:var(--wh2);line-height:1.5}
 .msg-time{font-size:.65rem;color:var(--wh3);margin-top:.15rem}
 .no-msgs{font-size:.82rem;color:var(--wh3);font-style:italic;padding:.4rem 0}
 .cta-area{padding:1rem .9rem}
@@ -497,7 +531,7 @@ input,textarea{font-size:16px!important;font-family:inherit}
 .cl-item.checked .cl-checkbox{background:var(--ok);border-color:var(--ok)}
 .cl-checkbox svg{display:none;width:10px;height:10px}
 .cl-item.checked .cl-checkbox svg{display:block}
-.cl-text{font-size:.82rem;color:var(--wh);line-height:1.4}
+.cl-text{font-size:.82rem;color:var(--wh2);line-height:1.4}
 .cl-item.checked .cl-text{color:var(--wh3);text-decoration:line-through}
 .cl-qty{font-size:.68rem;font-weight:600;color:var(--gold);margin-top:.08rem}
 .carol-sub-sec{padding:.5rem .9rem 1rem}
@@ -511,7 +545,7 @@ input,textarea{font-size:16px!important;font-family:inherit}
 .act-btn:active{background:var(--gold-h)}
 .sent-list{margin-top:.65rem;display:flex;flex-direction:column;gap:.3rem}
 .sent-item{background:var(--blk3);border:1px solid rgba(212,160,23,.08);padding:.6rem .75rem}
-.sent-text{font-size:.78rem;color:var(--wh);line-height:1.4;margin-bottom:.18rem}
+.sent-text{font-size:.78rem;color:var(--wh2);line-height:1.4;margin-bottom:.18rem}
 .sent-time{font-size:.62rem;color:var(--wh3)}
 .del-btn{font-size:.6rem;color:var(--red);float:right;margin-left:.4rem;padding:0;background:none;border:none;cursor:pointer}
 .carol-photos-grid{margin-top:.55rem;display:grid;grid-template-columns:1fr 1fr;gap:.4rem}
@@ -519,7 +553,7 @@ input,textarea{font-size:16px!important;font-family:inherit}
 .c-photo img{width:100%;height:100%;object-fit:cover}
 .c-photo .del-ph{position:absolute;top:.25rem;right:.25rem;background:rgba(0,0,0,.75);color:var(--red);font-size:.65rem;padding:.15rem .4rem;border:none;cursor:pointer}
 .c-photo-cap{position:absolute;bottom:0;left:0;right:0;padding:.25rem .4rem;background:rgba(0,0,0,.75);font-size:.6rem;color:var(--wh2)}
-.photo-tip{margin-top:.6rem;font-size:.68rem;color:#C0BCB8;line-height:1.6}
+.photo-tip{margin-top:.6rem;font-size:.68rem;color:var(--wh3);line-height:1.6}
 .photo-tip strong{color:var(--wh2)}
 </style>
 </head>
@@ -640,12 +674,19 @@ input,textarea{font-size:16px!important;font-family:inherit}
   <div class="carol-sub-sec">
     <div class="carol-sub-title">Adicionar foto</div>
     <div class="inp-wrap">
-      <input class="line-input" id="ph-url" type="url" placeholder="URL da foto (Google Drive, etc.)">
+      <input type="file" id="ph-file" accept="image/*" style="display:none" onchange="handlePhotoFile(this)">
       <input class="line-input" id="ph-cap" type="text" placeholder="Legenda (ex: Recebimento 25/03)">
-      <button class="act-btn" onclick="addPhoto()">Adicionar foto</button>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin-top:.5rem">
+        <button class="act-btn" style="margin-top:0" onclick="openCamera()">&#128247; Camera</button>
+        <button class="act-btn" style="margin-top:0;background:rgba(212,160,23,.12);color:var(--gold);border:1px solid rgba(212,160,23,.3)" onclick="openGallery()">&#128444; Galeria</button>
+      </div>
+      <div id="ph-preview" style="display:none;margin-top:.6rem">
+        <img id="ph-preview-img" src="" alt="" style="width:100%;max-height:200px;object-fit:cover;display:block;border:1px solid rgba(212,160,23,.2)">
+        <div style="font-size:.65rem;color:var(--gold);margin-top:.25rem" id="ph-preview-name"></div>
+      </div>
+      <button class="act-btn" id="ph-send-btn" style="display:none;margin-top:.5rem" onclick="uploadPhoto()">&#10003; Publicar foto</button>
     </div>
     <div class="carol-photos-grid" id="carol-photos"></div>
-    <div class="photo-tip"><strong>Como adicionar foto:</strong> Google Drive, botao direito, Obter link, Qualquer pessoa com o link, cole a URL acima.</div>
   </div>
 
   <div class="carol-sub-sec">
