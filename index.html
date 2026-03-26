@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -17,17 +18,17 @@ var PIN = '1234';
 var PHASES = [
   {id:'e1', items:[
     {id:'a', text:'Material recebido com NF ou declaração de remessa', qty:''},
-    {id:'b', text:'Contagem: rolos de selos', qty:'95.500 selos · 20 conjuntos'},
+    {id:'b', text:'Contagem: rolos de selos', qty:'90.525 selos - 20 conjuntos'},
     {id:'c', text:'Contagem: cartelas de selos', qty:'4.775 cartelas'},
     {id:'d', text:'Planilha de destinatários recebida e validada', qty:'4.775 registros'},
     {id:'e', text:'Estações de trabalho organizadas', qty:''}
   ]},
   {id:'e2', items:[
     {id:'f', text:'Abertura dos envelopes', qty:'4.775 envelopes'},
-    {id:'g', text:'Recorte dos conjuntos de adesivos', qty:'20 conjuntos · 95.500 selos'},
+    {id:'g', text:'Recorte dos conjuntos de adesivos', qty:'20 conjuntos - 90.525 selos'},
     {id:'h', text:'Inserção de 1 carta por envelope', qty:'4.775 cartas'},
     {id:'i', text:'Inserção de 1 cartela de selos', qty:'4.775 cartelas'},
-    {id:'j', text:'Inserção de 20 selos soltos', qty:'95.500 selos'},
+    {id:'j', text:'Inserção de 19 selos soltos', qty:'90.525 selos'},
     {id:'k', text:'Fechamento dos envelopes com cola', qty:'4.775 envelopes'},
     {id:'l', text:'Etiquetas de destinatário coladas', qty:'4.775 etiquetas'},
     {id:'m', text:'Etiquetas de remetente coladas', qty:'4.775 etiquetas'},
@@ -36,7 +37,7 @@ var PHASES = [
   {id:'e3', items:[
     {id:'o', text:'Conferência final de amostragem', qty:''},
     {id:'p', text:'Envelopes contados e organizados', qty:'4.775 unidades'},
-    {id:'q', text:'Despacho realizado nos Correios', qty:'Mala Direta · 4.775 envios'},
+    {id:'q', text:'Despacho realizado nos Correios', qty:'Mala Direta - 4.775 envios'},
     {id:'r', text:'Comprovante de postagem enviado ao cliente', qty:''}
   ]}
 ];
@@ -113,13 +114,22 @@ function apiCall(action, body, cb){
 }
 
 function syncFromApi(){
+  if(!API_URL) return;
   apiCall('load', {}, function(err, res){
     if(!err && res && res.ok){
-      S.checks = res.checks || S.checks;
-      S.msgs   = res.msgs   || S.msgs;
-      S.photos = res.photos || S.photos;
+      // Only update if server has MORE data than local
+      var serverChecks = res.checks || {};
+      var serverMsgs   = res.msgs   || [];
+      var serverPhotos = res.photos || [];
+      // Merge checks (server wins per key)
+      Object.keys(serverChecks).forEach(function(k){
+        S.checks[k] = serverChecks[k];
+      });
+      // Replace msgs and photos if server has them
+      if(serverMsgs.length > 0)   S.msgs   = serverMsgs;
+      if(serverPhotos.length > 0) S.photos = serverPhotos;
       lsSave();
-      if(document.readyState !== 'loading') renderClient();
+      renderClient();
     }
   });
 }
@@ -192,13 +202,13 @@ function renderClient(){
   if(pt) pt.textContent = p.pct+'%';
 
   var st = document.getElementById('s-txt');
-  if(st){ st.textContent = allDone?'Concluído':'Em produção'; st.className='meta-v '+(allDone?'ok':'gold'); }
+  if(st){ st.textContent = allDone?'Concluido':'Em produção'; st.className='meta-v '+(allDone?'ok':'gold'); }
 
   var badge = document.getElementById('s-badge');
   if(badge){
     if(allDone){
       badge.style.background='var(--ok-bg)'; badge.style.borderColor='rgba(29,158,117,.3)';
-      badge.innerHTML='<span style="color:var(--ok)">Concluído</span>';
+      badge.innerHTML='<span style="color:var(--ok)">Concluido</span>';
     } else {
       badge.style.background=''; badge.style.borderColor='';
       badge.innerHTML='<div class="live-dot"></div>Em andamento';
@@ -212,7 +222,7 @@ function renderClient(){
       var s = ss[i];
       var dc = s==='done'?'done': s==='active'?'active':'wait';
       var bc = s==='done'?'st-done': s==='active'?'st-active':'st-wait';
-      var bt = s==='done'?'Concluído': s==='active'?'Em andamento':'Aguardando';
+      var bt = s==='done'?'Concluido': s==='active'?'Em andamento':'Aguardando';
       var svg = s==='done' ? '<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>' : '';
       var nc = s==='wait' ? 'tl-name dim' : 'tl-name';
       var dc2 = s==='wait' ? ' style="color:var(--wh3)"' : '';
@@ -350,29 +360,21 @@ function delMsg(id){
 }
 
 var _b64 = null;
-
-function openCamera(){
-  var f=document.getElementById('ph-file');
-  f.setAttribute('capture','environment'); f.click();
-}
-function openGallery(){
-  var f=document.getElementById('ph-file');
-  f.removeAttribute('capture'); f.click();
-}
+function openCamera(){var f=document.getElementById('ph-file');f.setAttribute('capture','environment');f.click();}
+function openGallery(){var f=document.getElementById('ph-file');f.removeAttribute('capture');f.click();}
 function handlePhotoFile(input){
   if(!input.files||!input.files[0]) return;
   var file=input.files[0];
-  // Compress image before storing
   var img=new Image();
   var reader=new FileReader();
   reader.onload=function(e){
     img.onload=function(){
       var canvas=document.createElement('canvas');
       var MAX=800;
-      var w=img.width, h=img.height;
-      if(w>MAX){h=Math.round(h*MAX/w);w=MAX;}
-      if(h>MAX){w=Math.round(w*MAX/h);h=MAX;}
-      canvas.width=w; canvas.height=h;
+      var w=img.width,h=img.height;
+      if(w>h&&w>MAX){h=Math.round(h*MAX/w);w=MAX;}
+      else if(h>MAX){w=Math.round(w*MAX/h);h=MAX;}
+      canvas.width=w;canvas.height=h;
       canvas.getContext('2d').drawImage(img,0,0,w,h);
       _b64=canvas.toDataURL('image/jpeg',0.7);
       var prev=document.getElementById('ph-preview');
@@ -392,20 +394,18 @@ function uploadPhoto(){
   if(!_b64){toast('Selecione uma foto primeiro.');return;}
   var cap=(document.getElementById('ph-cap')||{}).value||'';
   var pid=uid();
-  S.photos.push({id:pid,url:_b64,cap:cap.trim()});
+  var photoData={id:pid,url:_b64,cap:cap.trim()};
+  S.photos.push(photoData);
   lsSave();
-  // Sync to API
+  renderCarolPhotos();renderClient();
+  toast('Publicando foto...');
   apiCall('photo',{url:_b64,caption:cap.trim()},function(err,res){
-    if(!err&&res&&res.ok) toast('Foto publicada e sincronizada!');
-    else toast('Foto salva localmente.');
+    toast((!err&&res&&res.ok)?'✓ Foto publicada!':'Foto salva. Sem conexão.');
   });
   _b64=null;
-  ['ph-preview','ph-send-btn'].forEach(function(id){
-    var e=document.getElementById(id); if(e)e.style.display='none';
-  });
+  ['ph-preview','ph-send-btn'].forEach(function(id){var e=document.getElementById(id);if(e)e.style.display='none';});
   var c=document.getElementById('ph-cap');if(c)c.value='';
   var f=document.getElementById('ph-file');if(f)f.value='';
-  renderCarolPhotos(); renderClient();
 }
 
 function pubMsg(){
@@ -593,7 +593,7 @@ input,textarea{font-size:16px!important;font-family:inherit}
     </div>
     <div class="proj-meta">
       <div class="meta-item"><div class="meta-l">Total de envios</div><div class="meta-v">4.775</div></div>
-      <div class="meta-item"><div class="meta-l">Prazo de execução</div><div class="meta-v gold">6 dias uteis*</div></div>
+      <div class="meta-item"><div class="meta-l">Prazo de execução</div><div class="meta-v gold">6 dias úteis*</div></div>
       <div class="meta-item"><div class="meta-l">Responsavel</div><div class="meta-v">Carol da VIP</div></div>
       <div class="meta-item"><div class="meta-l">Status</div><div class="meta-v gold" id="s-txt">Em produção</div></div>
     </div>
@@ -718,7 +718,14 @@ input,textarea{font-size:16px!important;font-family:inherit}
 lsLoad();
 renderClient();
 syncFromApi();
+// Refresh every 15s
 setInterval(function(){ syncFromApi(); }, 15000);
+// Also refresh when user returns to the tab/app
+document.addEventListener('visibilitychange', function(){
+  if(document.visibilityState === 'visible') syncFromApi();
+});
+window.addEventListener('focus', function(){ syncFromApi(); });
+window.addEventListener('pageshow', function(){ syncFromApi(); });
 </script>
 </body>
 </html>
