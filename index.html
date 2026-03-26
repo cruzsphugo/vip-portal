@@ -16,35 +16,35 @@ var PIN = '1234';
 
 var PHASES = [
   {id:'e1', items:[
-    {id:'a', text:'Material recebido com NF ou declaracao de remessa', qty:''},
-    {id:'b', text:'Contagem: rolos de selos', qty:'95.500 selos - 20 conjuntos'},
+    {id:'a', text:'Material recebido com NF ou declaração de remessa', qty:''},
+    {id:'b', text:'Contagem: rolos de selos', qty:'95.500 selos · 20 conjuntos'},
     {id:'c', text:'Contagem: cartelas de selos', qty:'4.775 cartelas'},
-    {id:'d', text:'Planilha de destinatarios recebida e validada', qty:'4.775 registros'},
-    {id:'e', text:'Estacoes de trabalho organizadas', qty:''}
+    {id:'d', text:'Planilha de destinatários recebida e validada', qty:'4.775 registros'},
+    {id:'e', text:'Estações de trabalho organizadas', qty:''}
   ]},
   {id:'e2', items:[
     {id:'f', text:'Abertura dos envelopes', qty:'4.775 envelopes'},
-    {id:'g', text:'Recorte dos conjuntos de adesivos', qty:'20 conjuntos - 95.500 selos'},
-    {id:'h', text:'Insercao de 1 carta por envelope', qty:'4.775 cartas'},
-    {id:'i', text:'Insercao de 1 cartela de selos', qty:'4.775 cartelas'},
-    {id:'j', text:'Insercao de 20 selos soltos', qty:'95.500 selos'},
+    {id:'g', text:'Recorte dos conjuntos de adesivos', qty:'20 conjuntos · 95.500 selos'},
+    {id:'h', text:'Inserção de 1 carta por envelope', qty:'4.775 cartas'},
+    {id:'i', text:'Inserção de 1 cartela de selos', qty:'4.775 cartelas'},
+    {id:'j', text:'Inserção de 20 selos soltos', qty:'95.500 selos'},
     {id:'k', text:'Fechamento dos envelopes com cola', qty:'4.775 envelopes'},
-    {id:'l', text:'Etiquetas de destinatario coladas', qty:'4.775 etiquetas'},
+    {id:'l', text:'Etiquetas de destinatário coladas', qty:'4.775 etiquetas'},
     {id:'m', text:'Etiquetas de remetente coladas', qty:'4.775 etiquetas'},
     {id:'n', text:'Chancelas Mala Direta inseridas', qty:'4.775 chancelas'}
   ]},
   {id:'e3', items:[
-    {id:'o', text:'Conferencia final de amostragem', qty:''},
+    {id:'o', text:'Conferência final de amostragem', qty:''},
     {id:'p', text:'Envelopes contados e organizados', qty:'4.775 unidades'},
-    {id:'q', text:'Despacho realizado nos Correios', qty:'Mala Direta - 4.775 envios'},
+    {id:'q', text:'Despacho realizado nos Correios', qty:'Mala Direta · 4.775 envios'},
     {id:'r', text:'Comprovante de postagem enviado ao cliente', qty:''}
   ]}
 ];
 
 var STAGES = [
-  {name:'Recebimento, separacao, conferencia e organizacao de material', desc:'Material recebido e conferido na VIP. Selos, cartelas, planilha e envelopes organizados para inicio da operacao.'},
+  {name:'Recebimento, separação, conferência e organização de material', desc:'Material recebido e conferido na VIP. Selos, cartelas, planilha e envelopes organizados para início da operação.'},
   {name:'Manuseio do material', desc:'Montagem dos envelopes: carta, cartela, selos, etiquetagem e chancela Mala Direta.'},
-  {name:'Conferencia final, despacho e encerramento', desc:'Conferencia final, organizacao e despacho nos Correios na modalidade Mala Direta.'}
+  {name:'Conferência final, despacho e encerramento', desc:'Conferência final, organização e despacho nos Correios na modalidade Mala Direta.'}
 ];
 
 var S = {checks:{}, msgs:[], photos:[]};
@@ -79,8 +79,8 @@ function uid(){ return Math.random().toString(36).slice(2)+Date.now().toString(3
 function fixUrl(u){
   if(!u) return '';
   if(u.indexOf('data:image')===0) return u;
-  var m = u.match(/\/file\/d\/([^\/]+)\//);
-  return m ? 'https://drive.google.com/uc?export=view&id='+m[1] : u;
+  var m=u.match(/\/file\/d\/([^\/]+)\//);
+  return m?'https://drive.google.com/uc?export=view&id='+m[1]:u;
 }
 
 function toast(msg){
@@ -192,13 +192,13 @@ function renderClient(){
   if(pt) pt.textContent = p.pct+'%';
 
   var st = document.getElementById('s-txt');
-  if(st){ st.textContent = allDone?'Concluido':'Em producao'; st.className='meta-v '+(allDone?'ok':'gold'); }
+  if(st){ st.textContent = allDone?'Concluído':'Em produção'; st.className='meta-v '+(allDone?'ok':'gold'); }
 
   var badge = document.getElementById('s-badge');
   if(badge){
     if(allDone){
       badge.style.background='var(--ok-bg)'; badge.style.borderColor='rgba(29,158,117,.3)';
-      badge.innerHTML='<span style="color:var(--ok)">Concluido</span>';
+      badge.innerHTML='<span style="color:var(--ok)">Concluído</span>';
     } else {
       badge.style.background=''; badge.style.borderColor='';
       badge.innerHTML='<div class="live-dot"></div>Em andamento';
@@ -212,7 +212,7 @@ function renderClient(){
       var s = ss[i];
       var dc = s==='done'?'done': s==='active'?'active':'wait';
       var bc = s==='done'?'st-done': s==='active'?'st-active':'st-wait';
-      var bt = s==='done'?'Concluido': s==='active'?'Em andamento':'Aguardando';
+      var bt = s==='done'?'Concluído': s==='active'?'Em andamento':'Aguardando';
       var svg = s==='done' ? '<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>' : '';
       var nc = s==='wait' ? 'tl-name dim' : 'tl-name';
       var dc2 = s==='wait' ? ' style="color:var(--wh3)"' : '';
@@ -253,13 +253,13 @@ function renderClient(){
   var mEl = document.getElementById('client-msgs');
   if(mEl){
     if(!S.msgs || !S.msgs.length){
-      mEl.innerHTML = '<div class="no-msgs">Nenhuma atualizacao ainda.</div>';
+      mEl.innerHTML = '<div class="no-msgs">Nenhuma atualização ainda.</div>';
     } else {
       mEl.innerHTML = S.msgs.map(function(m){
         return '<div class="msg">'
           +'<div class="msg-avatar">CV</div>'
           +'<div class="msg-body">'
-            +'<div class="msg-who">Carol - VIP Manuseios</div>'
+            +'<div class="msg-who">Carol · VIP Manuseios</div>'
             +'<div class="msg-text">'+esc(m.txt)+'</div>'
             +'<div class="msg-time">'+m.ts+'</div>'
           +'</div></div>';
@@ -331,7 +331,7 @@ function renderCarolMsgs(){
   var el = document.getElementById('sent-msgs');
   if(!el) return;
   if(!S.msgs || !S.msgs.length){
-    el.innerHTML='<div style="font-size:.78rem;color:var(--wh3)">Nenhuma atualizacao publicada ainda.</div>';
+    el.innerHTML='<div style="font-size:.78rem;color:var(--wh3)">Nenhuma atualização publicada ainda.</div>';
     return;
   }
   el.innerHTML = S.msgs.map(function(m){
@@ -349,51 +349,63 @@ function delMsg(id){
   toast('Mensagem apagada.');
 }
 
-function addPhoto(){ /* replaced by camera flow */ }
-
 var _b64 = null;
 
 function openCamera(){
-  var f = document.getElementById('ph-file');
-  f.setAttribute('capture','environment');
-  f.click();
+  var f=document.getElementById('ph-file');
+  f.setAttribute('capture','environment'); f.click();
 }
 function openGallery(){
-  var f = document.getElementById('ph-file');
-  f.removeAttribute('capture');
-  f.click();
+  var f=document.getElementById('ph-file');
+  f.removeAttribute('capture'); f.click();
 }
 function handlePhotoFile(input){
   if(!input.files||!input.files[0]) return;
-  var file = input.files[0];
-  var reader = new FileReader();
-  reader.onload = function(e){
-    _b64 = e.target.result;
-    var prev = document.getElementById('ph-preview');
-    var img  = document.getElementById('ph-preview-img');
-    var name = document.getElementById('ph-preview-name');
-    var btn  = document.getElementById('ph-send-btn');
-    if(prev) prev.style.display='block';
-    if(img)  img.src = _b64;
-    if(name) name.textContent = file.name;
-    if(btn)  btn.style.display='block';
+  var file=input.files[0];
+  // Compress image before storing
+  var img=new Image();
+  var reader=new FileReader();
+  reader.onload=function(e){
+    img.onload=function(){
+      var canvas=document.createElement('canvas');
+      var MAX=800;
+      var w=img.width, h=img.height;
+      if(w>MAX){h=Math.round(h*MAX/w);w=MAX;}
+      if(h>MAX){w=Math.round(w*MAX/h);h=MAX;}
+      canvas.width=w; canvas.height=h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      _b64=canvas.toDataURL('image/jpeg',0.7);
+      var prev=document.getElementById('ph-preview');
+      var pimg=document.getElementById('ph-preview-img');
+      var pname=document.getElementById('ph-preview-name');
+      var btn=document.getElementById('ph-send-btn');
+      if(prev)prev.style.display='block';
+      if(pimg)pimg.src=_b64;
+      if(pname)pname.textContent=file.name;
+      if(btn)btn.style.display='block';
+    };
+    img.src=e.target.result;
   };
   reader.readAsDataURL(file);
 }
 function uploadPhoto(){
-  if(!_b64){ toast('Selecione uma foto primeiro.'); return; }
-  var cap = (document.getElementById('ph-cap')||{}).value||'';
-  var pid = uid();
-  S.photos.push({id:pid, url:_b64, cap:cap.trim()});
+  if(!_b64){toast('Selecione uma foto primeiro.');return;}
+  var cap=(document.getElementById('ph-cap')||{}).value||'';
+  var pid=uid();
+  S.photos.push({id:pid,url:_b64,cap:cap.trim()});
   lsSave();
+  // Sync to API
+  apiCall('photo',{url:_b64,caption:cap.trim()},function(err,res){
+    if(!err&&res&&res.ok) toast('Foto publicada e sincronizada!');
+    else toast('Foto salva localmente.');
+  });
   _b64=null;
-  var els=['ph-preview','ph-send-btn'];
-  els.forEach(function(id){var e=document.getElementById(id);if(e)e.style.display='none';});
-  var c=document.getElementById('ph-cap'); if(c) c.value='';
-  var f=document.getElementById('ph-file'); if(f) f.value='';
+  ['ph-preview','ph-send-btn'].forEach(function(id){
+    var e=document.getElementById(id); if(e)e.style.display='none';
+  });
+  var c=document.getElementById('ph-cap');if(c)c.value='';
+  var f=document.getElementById('ph-file');if(f)f.value='';
   renderCarolPhotos(); renderClient();
-  toast('Foto publicada!');
-  apiCall('photo',{url:_b64||'',caption:cap},null);
 }
 
 function pubMsg(){
@@ -405,7 +417,7 @@ function pubMsg(){
   lsSave();
   if(inp) inp.value='';
   renderCarolMsgs(); renderClient();
-  toast('Atualizacao publicada!');
+  toast('Atualização publicada!');
   apiCall('msg', {text:txt}, null);
 }
 </script>
@@ -572,43 +584,43 @@ input,textarea{font-size:16px!important;font-family:inherit}
   </div>
 
   <div class="hero-card">
-    <div class="project-label">Ordem de Servico #923</div>
-    <div class="project-name">Acao Encantamento <span class="live-badge" id="s-badge"><div class="live-dot"></div>Em andamento</span></div>
-    <div class="project-client">Camila Santos - Plurix - camila@plurix.com</div>
+    <div class="project-label">Ordem de Serviço #923</div>
+    <div class="project-name">Ação Encantamento <span class="live-badge" id="s-badge"><div class="live-dot"></div>Em andamento</span></div>
+    <div class="project-client">Camila Santos · Plurix · camila@plurix.com</div>
     <div>
       <div class="prog-label"><span>Progresso geral</span><span id="pct-txt">0%</span></div>
       <div class="prog-track"><div class="prog-fill" id="prog-bar" style="width:0%"></div></div>
     </div>
     <div class="proj-meta">
       <div class="meta-item"><div class="meta-l">Total de envios</div><div class="meta-v">4.775</div></div>
-      <div class="meta-item"><div class="meta-l">Prazo de execucao</div><div class="meta-v gold">6 dias uteis*</div></div>
+      <div class="meta-item"><div class="meta-l">Prazo de execução</div><div class="meta-v gold">6 dias uteis*</div></div>
       <div class="meta-item"><div class="meta-l">Responsavel</div><div class="meta-v">Carol da VIP</div></div>
-      <div class="meta-item"><div class="meta-l">Status</div><div class="meta-v gold" id="s-txt">Em producao</div></div>
+      <div class="meta-item"><div class="meta-l">Status</div><div class="meta-v gold" id="s-txt">Em produção</div></div>
     </div>
-    <div class="prazo-note">*Prazo apos recebimento de <strong>todo o material</strong> do cliente.</div>
+    <div class="prazo-note">*Prazo após recebimento de <strong>todo o material</strong> do cliente.</div>
   </div>
 
   <div class="section">
-    <div class="section-title">Etapas da operacao</div>
+    <div class="section-title">Etapas da operação</div>
     <div class="timeline" id="tl"></div>
   </div>
 
   <div class="dispatch-card">
-    <div class="dispatch-label">Despacho - Correios Mala Direta</div>
+    <div class="dispatch-label">Despacho · Correios Mala Direta</div>
     <div class="dispatch-row"><span class="dispatch-k">Envelopes despachados</span><span class="dispatch-v gold" id="dc-txt">0 / 4.775</span></div>
     <div class="dispatch-row"><span class="dispatch-k">Modalidade</span><span class="dispatch-v">Mala Direta</span></div>
-    <div class="dispatch-row"><span class="dispatch-k">Prazo de entrega</span><span class="dispatch-v">10-15 dias uteis apos despacho</span></div>
-    <div class="dispatch-row"><span class="dispatch-k">Rastreamento</span><span class="dispatch-v" style="color:var(--wh3)">Nao disponivel nesta modalidade</span></div>
-    <div class="dispatch-note">Envios por Mala Direta nao possuem rastreio individual. O prazo varia de 10 a 15 dias uteis apos o despacho.</div>
+    <div class="dispatch-row"><span class="dispatch-k">Prazo de entrega</span><span class="dispatch-v">10–15 dias úteis após despacho</span></div>
+    <div class="dispatch-row"><span class="dispatch-k">Rastreamento</span><span class="dispatch-v" style="color:var(--wh3)">Não disponível nesta modalidade</span></div>
+    <div class="dispatch-note">Envios por Mala Direta não possuem rastreio individual. O prazo varia de 10 a 15 dias úteis após o despacho.</div>
   </div>
 
   <div class="section">
-    <div class="section-title">Registros fotograficos</div>
+    <div class="section-title">Registros fotográficos</div>
     <div class="photos" id="client-photos"></div>
   </div>
 
   <div class="messages">
-    <div class="section-title" style="padding:0 0 .7rem">Atualizacoes da Carol</div>
+    <div class="section-title" style="padding:0 0 .7rem">Atualizações da Carol</div>
     <div id="client-msgs"></div>
   </div>
 
@@ -617,7 +629,7 @@ input,textarea{font-size:16px!important;font-family:inherit}
       <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
       Falar com a Carol da VIP
     </a>
-    <div class="cta-sub">Duvidas ou alteracoes? A Carol responde em minutos.</div>
+    <div class="cta-sub">Dúvidas ou alterações? A Carol responde em minutos.</div>
   </div>
 
   <div class="portal-footer">
@@ -629,9 +641,9 @@ input,textarea{font-size:16px!important;font-family:inherit}
 <!-- PIN VIEW -->
 <div id="view-pin">
   <div class="pin-title">Painel da Carol</div>
-  <div class="pin-sub">Digite o codigo de acesso</div>
+  <div class="pin-sub">Digite o código de acesso</div>
   <input class="pin-input" id="pin-inp" type="password" inputmode="numeric" maxlength="6" placeholder="..." autocomplete="off" onkeydown="if(event.key==='Enter')tryPin()">
-  <div class="pin-error" id="pin-err">Codigo incorreto. Tente novamente.</div>
+  <div class="pin-error" id="pin-err">Código incorreto. Tente novamente.</div>
   <button class="pin-btn" onclick="tryPin()">Entrar</button>
   <button class="pin-cancel" onclick="showView('client')">Voltar</button>
 </div>
@@ -641,7 +653,7 @@ input,textarea{font-size:16px!important;font-family:inherit}
   <div class="carol-hdr">
     <div>
       <div class="carol-hdr-title">Painel da Carol</div>
-      <div class="carol-hdr-sub">OS 923 - Plurix - 4.775 envelopes</div>
+      <div class="carol-hdr-sub">OS #923 · Plurix · 4.775 envelopes</div>
     </div>
     <button class="carol-close" onclick="exitCarol()">Sair</button>
   </div>
@@ -658,15 +670,15 @@ input,textarea{font-size:16px!important;font-family:inherit}
 
   <div class="cl-section">
     <div class="cl-phase">
-      <div class="cl-phase-title">Etapa 1 - Recebimento <span class="cl-phase-pct" id="pp-e1"></span></div>
+      <div class="cl-phase-title">Etapa 1 — Recebimento <span class="cl-phase-pct" id="pp-e1"></span></div>
       <div id="cl-e1"></div>
     </div>
     <div class="cl-phase">
-      <div class="cl-phase-title">Etapa 2 - Manuseio <span class="cl-phase-pct" id="pp-e2"></span></div>
+      <div class="cl-phase-title">Etapa 2 — Manuseio <span class="cl-phase-pct" id="pp-e2"></span></div>
       <div id="cl-e2"></div>
     </div>
     <div class="cl-phase">
-      <div class="cl-phase-title">Etapa 3 - Conferencia e despacho <span class="cl-phase-pct" id="pp-e3"></span></div>
+      <div class="cl-phase-title">Etapa 3 — Conferência e despacho <span class="cl-phase-pct" id="pp-e3"></span></div>
       <div id="cl-e3"></div>
     </div>
   </div>
@@ -675,9 +687,9 @@ input,textarea{font-size:16px!important;font-family:inherit}
     <div class="carol-sub-title">Adicionar foto</div>
     <div class="inp-wrap">
       <input type="file" id="ph-file" accept="image/*" style="display:none" onchange="handlePhotoFile(this)">
-      <input class="line-input" id="ph-cap" type="text" placeholder="Legenda (ex: Recebimento 25/03)">
+      <input class="line-input" id="ph-cap" type="text" placeholder="Legenda (ex: Recebimento · 25/03)">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin-top:.5rem">
-        <button class="act-btn" style="margin-top:0" onclick="openCamera()">&#128247; Camera</button>
+        <button class="act-btn" style="margin-top:0" onclick="openCamera()">&#128247; Câmera</button>
         <button class="act-btn" style="margin-top:0;background:rgba(212,160,23,.12);color:var(--gold);border:1px solid rgba(212,160,23,.3)" onclick="openGallery()">&#128444; Galeria</button>
       </div>
       <div id="ph-preview" style="display:none;margin-top:.6rem">
@@ -690,9 +702,9 @@ input,textarea{font-size:16px!important;font-family:inherit}
   </div>
 
   <div class="carol-sub-sec">
-    <div class="carol-sub-title">Publicar atualizacao para o cliente</div>
+    <div class="carol-sub-title">Publicar atualização para o cliente</div>
     <div class="inp-wrap">
-      <textarea class="big-input" id="msg-inp" placeholder="Escreva uma atualizacao para o cliente ver no portal..."></textarea>
+      <textarea class="big-input" id="msg-inp" placeholder="Escreva uma atualização para o cliente ver no portal…"></textarea>
       <button class="act-btn" onclick="pubMsg()">Publicar</button>
     </div>
     <div class="sent-list" id="sent-msgs"></div>
@@ -706,7 +718,7 @@ input,textarea{font-size:16px!important;font-family:inherit}
 lsLoad();
 renderClient();
 syncFromApi();
-setInterval(function(){ syncFromApi(); }, 30000);
+setInterval(function(){ syncFromApi(); }, 15000);
 </script>
 </body>
 </html>
