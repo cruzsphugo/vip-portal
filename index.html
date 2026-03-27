@@ -1,5 +1,3 @@
-
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -18,14 +16,14 @@ var PIN = '1234';
 var PHASES = [
   {id:'e1', items:[
     {id:'a', text:'Material recebido com NF ou declaração de remessa', qty:''},
-    {id:'b', text:'Contagem: rolos de selos', qty:'90.525 selos - 20 conjuntos'},
+    {id:'b', text:'Contagem: rolos de selos', qty:'95.500 selos - 20 conjuntos'},
     {id:'c', text:'Contagem: cartelas de selos', qty:'4.775 cartelas'},
     {id:'d', text:'Planilha de destinatários recebida e validada', qty:'4.775 registros'},
     {id:'e', text:'Estações de trabalho organizadas', qty:''}
   ]},
   {id:'e2', items:[
     {id:'f', text:'Abertura dos envelopes', qty:'4.775 envelopes'},
-    {id:'g', text:'Recorte dos conjuntos de adesivos', qty:'20 conjuntos - 90.525 selos'},
+    {id:'g', text:'Recorte dos conjuntos de adesivos', qty:'20 conjuntos - 95.500 selos'},
     {id:'h', text:'Inserção de 1 carta por envelope', qty:'4.775 cartas'},
     {id:'i', text:'Inserção de 1 cartela de selos', qty:'4.775 cartelas'},
     {id:'j', text:'Inserção de 19 selos soltos', qty:'90.525 selos'},
@@ -78,10 +76,8 @@ function esc(t){
 function uid(){ return Math.random().toString(36).slice(2)+Date.now().toString(36); }
 
 function fixUrl(u){
-  if(!u) return '';
-  if(u.indexOf('data:image')===0) return u;
-  var m=u.match(/\/file\/d\/([^\/]+)\//);
-  return m?'https://drive.google.com/uc?export=view&id='+m[1]:u;
+  var m = u.match(/\/file\/d\/([^\/]+)\//);
+  return m ? 'https://drive.google.com/uc?export=view&id='+m[1] : u;
 }
 
 function toast(msg){
@@ -117,17 +113,26 @@ function syncFromApi(){
   if(!API_URL) return;
   apiCall('load', {}, function(err, res){
     if(!err && res && res.ok){
-      // Only update if server has MORE data than local
-      var serverChecks = res.checks || {};
-      var serverMsgs   = res.msgs   || [];
-      var serverPhotos = res.photos || [];
-      // Merge checks (server wins per key)
-      Object.keys(serverChecks).forEach(function(k){
-        S.checks[k] = serverChecks[k];
-      });
-      // Replace msgs and photos if server has them
-      if(serverMsgs.length > 0)   S.msgs   = serverMsgs;
-      if(serverPhotos.length > 0) S.photos = serverPhotos;
+      // Merge checks — server wins per key
+      var sc = res.checks || {};
+      Object.keys(sc).forEach(function(k){ S.checks[k] = sc[k]; });
+
+      // Sync messages — server is source of truth, normalize fields
+      var sm = res.msgs || [];
+      if(sm.length > 0){
+        S.msgs = sm.map(function(m){
+          return {id:m.id||uid(), text:m.text||m.txt||'', time:m.time||m.ts||''};
+        });
+      }
+
+      // Photos: don't overwrite Carol's local base64 photos
+      // Just update count for other devices
+      var sp = res.photos || [];
+      var photoCountEl = document.getElementById('photo-count-badge');
+      if(photoCountEl && sp.length > 0){
+        photoCountEl.textContent = sp.length + (sp.length===1?' foto':' fotos');
+      }
+
       lsSave();
       renderClient();
     }
@@ -270,8 +275,8 @@ function renderClient(){
           +'<div class="msg-avatar">CV</div>'
           +'<div class="msg-body">'
             +'<div class="msg-who">Carol · VIP Manuseios</div>'
-            +'<div class="msg-text">'+esc(m.txt)+'</div>'
-            +'<div class="msg-time">'+m.ts+'</div>'
+            +'<div class="msg-text">'+esc(m.text||m.txt||'')+'</div>'
+            +'<div class="msg-time">'+(m.time||m.ts||'')+'</div>'
           +'</div></div>';
       }).join('');
     }
@@ -347,8 +352,8 @@ function renderCarolMsgs(){
   el.innerHTML = S.msgs.map(function(m){
     return '<div class="sent-item">'
       +'<button class="del-btn" onclick="delMsg(\''+m.id+'\')">apagar</button>'
-      +'<div class="sent-text">'+esc(m.txt)+'</div>'
-      +'<div class="sent-time">'+m.ts+'</div>'
+      +'<div class="sent-text">'+esc(m.text||m.txt||'')+'</div>'
+      +'<div class="sent-time">'+(m.time||m.ts||'')+'</div>'
       +'</div>';
   }).join('');
 }
@@ -359,19 +364,17 @@ function delMsg(id){
   toast('Mensagem apagada.');
 }
 
-var _b64 = null;
+var _b64=null;
 function openCamera(){var f=document.getElementById('ph-file');f.setAttribute('capture','environment');f.click();}
 function openGallery(){var f=document.getElementById('ph-file');f.removeAttribute('capture');f.click();}
 function handlePhotoFile(input){
-  if(!input.files||!input.files[0]) return;
+  if(!input.files||!input.files[0])return;
   var file=input.files[0];
-  var img=new Image();
-  var reader=new FileReader();
+  var img=new Image(), reader=new FileReader();
   reader.onload=function(e){
     img.onload=function(){
       var canvas=document.createElement('canvas');
-      var MAX=800;
-      var w=img.width,h=img.height;
+      var MAX=800,w=img.width,h=img.height;
       if(w>h&&w>MAX){h=Math.round(h*MAX/w);w=MAX;}
       else if(h>MAX){w=Math.round(w*MAX/h);h=MAX;}
       canvas.width=w;canvas.height=h;
@@ -390,30 +393,13 @@ function handlePhotoFile(input){
   };
   reader.readAsDataURL(file);
 }
-function uploadPhoto(){
-  if(!_b64){toast('Selecione uma foto primeiro.');return;}
-  var cap=(document.getElementById('ph-cap')||{}).value||'';
-  var pid=uid();
-  var photoData={id:pid,url:_b64,cap:cap.trim()};
-  S.photos.push(photoData);
-  lsSave();
-  renderCarolPhotos();renderClient();
-  toast('Publicando foto...');
-  apiCall('photo',{url:_b64,caption:cap.trim()},function(err,res){
-    toast((!err&&res&&res.ok)?'✓ Foto publicada!':'Foto salva. Sem conexão.');
-  });
-  _b64=null;
-  ['ph-preview','ph-send-btn'].forEach(function(id){var e=document.getElementById(id);if(e)e.style.display='none';});
-  var c=document.getElementById('ph-cap');if(c)c.value='';
-  var f=document.getElementById('ph-file');if(f)f.value='';
-}
 
 function pubMsg(){
   var inp = document.getElementById('msg-inp');
   var txt = inp ? inp.value.trim() : '';
   if(!txt) return;
   var mid = uid(), mts = nowTs();
-  S.msgs.push({id:mid, txt:txt, ts:mts});
+  S.msgs.push({id:mid, text:txt, time:mts});
   lsSave();
   if(inp) inp.value='';
   renderCarolMsgs(); renderClient();
@@ -718,14 +704,9 @@ input,textarea{font-size:16px!important;font-family:inherit}
 lsLoad();
 renderClient();
 syncFromApi();
-// Refresh every 15s
-setInterval(function(){ syncFromApi(); }, 15000);
-// Also refresh when user returns to the tab/app
-document.addEventListener('visibilitychange', function(){
-  if(document.visibilityState === 'visible') syncFromApi();
-});
-window.addEventListener('focus', function(){ syncFromApi(); });
-window.addEventListener('pageshow', function(){ syncFromApi(); });
+setInterval(function(){syncFromApi();},15000);
+document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')syncFromApi();});
+window.addEventListener('focus',function(){syncFromApi();});
 </script>
 </body>
 </html>
